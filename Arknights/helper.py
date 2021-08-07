@@ -499,6 +499,12 @@ class ArknightsHelper(object):
 
     def back_to_main(self):  # 回到主页
         logger.info("正在返回主页")
+
+        try:
+            self.replay_custom_record('back_to_main')
+        except:
+            pass
+
         retry_count = 0
         max_retry = 3
         while True:
