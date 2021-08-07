@@ -1,0 +1,45 @@
+{
+    "back_to_main": true,
+    "description": "剿灭",
+    "prefer_mode": "match_template",
+    "records": [
+        {
+            "img": "step0.png",
+            "point": [
+                950,
+                160
+            ],
+            "raise_exception": true,
+            "repeat": 1,
+            "threshold": 0.7,
+            "type": "tap",
+            "wait_seconds_after_touch": 1
+        },
+        {
+            "img": "step1.png",
+            "point": [
+                1002,
+                672
+            ],
+            "raise_exception": true,
+            "repeat": 1,
+            "threshold": 0.7,
+            "type": "tap",
+            "wait_seconds_after_touch": 1
+        },
+        {
+            "img": "step2.png",
+            "point": [
+                806,
+                532
+            ],
+            "raise_exception": true,
+            "repeat": 1,
+            "threshold": 0.7,
+            "type": "tap",
+            "wait_seconds_after_touch": 2
+        }
+    ],
+    "screen_height": 720,
+    "screen_width": 1280
+}
