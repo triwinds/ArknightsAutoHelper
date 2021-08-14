@@ -4,7 +4,7 @@ from functools import lru_cache
 from . import dummy
 from .common import OcrHint, OcrLine, OcrResult, OcrWord
 
-available_engines = ['tesseract', 'windows_media_ocr', 'baidu']
+available_engines = ['cnocr', 'tesseract', 'windows_media_ocr', 'baidu']
 """
 适配的 engine 列表
 一个 engine 需要实现以下接口：
@@ -29,7 +29,7 @@ def _auto_impl():
             eng = get_impl(name)
             if eng.check_supported():
                 return eng
-        except Exception:
+        except Exception as e:
             pass
     return dummy
 
