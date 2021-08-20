@@ -501,7 +501,7 @@ class ArknightsHelper(object):
         logger.info("正在返回主页")
 
         try:
-            self.replay_custom_record('back_to_main')
+            self.replay_custom_record('back_to_main', quiet=True)
         except:
             pass
 
@@ -553,7 +553,7 @@ class ArknightsHelper(object):
                     self.__wait(3)
                     continue
                 else:
-                    raise RuntimeError('未适配的对话框')
+                    raise RuntimeError(f'未适配的对话框, {ocr}')
             elif dlgtype == 'ok':
                 self.tap_rect(imgreco.common.get_dialog_ok_button_rect(screenshot))
                 self.__wait(1)
@@ -633,8 +633,20 @@ class ArknightsHelper(object):
         tags = imgreco.recruit.get_recruit_tags(self.adb.screenshot())
         logger.info('可选标签：%s', ' '.join(tags))
         result = recruit_calc.calculate(tags)
+        import pprint
+        pprint.pprint(result)
         logger.debug('计算结果：%s', repr(result))
         return result
+
+    def recruit_with_rect(self):
+        import imgreco.recruit
+        from . import recruit_calc
+        logger.info('识别招募标签')
+        tags_map = imgreco.recruit.get_recruit_tags_with_rect(self.adb.screenshot())
+        logger.info('可选标签：%s', ' '.join(tags_map.keys()))
+        results = recruit_calc.calculate(tags_map.keys())
+        logger.debug('计算结果：%s', repr(results))
+        return results, tags_map
 
 
     def find_and_tap(self, partition, target):
@@ -1008,7 +1020,7 @@ class ArknightsHelper(object):
         with open(os.path.join(record_dir, f'record.json'), 'w', encoding='utf-8') as f:
             json.dump(record_data, f, ensure_ascii=False, indent=4, sort_keys=True)
 
-    def replay_custom_record(self, record_name, mode=None, back_to_main=None):
+    def replay_custom_record(self, record_name, mode=None, back_to_main=None, quiet=False):
         from PIL import Image
         record_dir = os.path.join(os.path.realpath(os.path.join(__file__, '../../')),
                                   os.path.join('custom_record/', record_name))
@@ -1047,10 +1059,16 @@ class ArknightsHelper(object):
                         (x, y), r = imgreco.imgops.match_template(gray_screen, template)
                         x = x // ratio
                         y = y // ratio
-                        logger.info(f'(x, y), r, record: {(x, y), r, record}')
+                        if quiet:
+                            logger.debug(f'(x, y), r, record, record_name: {(x, y), r, record, record_name}')
+                        else:
+                            logger.info(f'(x, y), r, record, record_name: {(x, y), r, record, record_name}')
                         if r < threshold:
                             if raise_exception:
-                                logger.error('无法识别的图像: ' + record['img'])
+                                if quiet:
+                                    logger.debug('无法识别的图像: ' + record['img'])
+                                else:
+                                    logger.error('无法识别的图像: ' + record['img'])
                                 raise RuntimeError('无法识别的图像: ' + record['img'])
                             break
                     elif mode == 'point':
@@ -1062,3 +1080,11 @@ class ArknightsHelper(object):
                     self.adb.touch_tap((x, y), offsets=(5, 5))
                     if record.get('wait_seconds_after_touch'):
                         self.__wait(record['wait_seconds_after_touch'])
+
+    def try_replay_record(self, record_name):
+        try:
+            self.replay_custom_record(record_name)
+            return True
+        except RuntimeError as e:
+            logger.info(f'skip {record_name}, {e}')
+            return False

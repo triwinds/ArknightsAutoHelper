@@ -20,28 +20,35 @@ def remove_unknown_chars(s, known_chars):
     result = ''.join(c for c in s if c in known_chars)
     return result
 
-def get_recruit_tags(img):
+
+def get_recruit_tags(screen):
+    res = get_recruit_tags_with_rect(screen)
+    return list(res.keys())
+
+
+def get_recruit_tags_with_rect(screen):
     import textdistance
-    vw, vh = util.get_vwvh(img)
-    tagimgs = [
-        img.crop((50*vw-36.481*vh, 50.185*vh, 50*vw-17.315*vh, 56.111*vh)).convert('L'),
-        img.crop((50*vw-13.241*vh, 50.185*vh, 50*vw+6.111*vh, 56.111*vh)).convert('L'),
-        img.crop((50*vw+10.000*vh, 50.185*vh, 50*vw+29.259*vh, 56.111*vh)).convert('L'),
-        img.crop((50*vw-36.481*vh, 60.278*vh, 50*vw-17.315*vh, 66.019*vh)).convert('L'),
-        img.crop((50*vw-13.241*vh, 60.278*vh, 50*vw+6.111*vh, 66.019*vh)).convert('L')
+    vw, vh = util.get_vwvh(screen)
+    tag_rects = [
+        (50 * vw - 36.481 * vh, 50.185 * vh, 50 * vw - 17.315 * vh, 56.111 * vh),
+        (50 * vw - 13.241 * vh, 50.185 * vh, 50 * vw + 6.111 * vh, 56.111 * vh),
+        (50 * vw + 10.000 * vh, 50.185 * vh, 50 * vw + 29.259 * vh, 56.111 * vh),
+        (50 * vw - 36.481 * vh, 60.278 * vh, 50 * vw - 17.315 * vh, 66.019 * vh),
+        (50 * vw - 13.241 * vh, 60.278 * vh, 50 * vw + 6.111 * vh, 66.019 * vh)
     ]
 
     eng = ocr.acquire_engine_global_cached('zh-cn')
     recognize = lambda img: eng.recognize(imgops.invert_color(img), int(vh * 20), hints=[ocr.OcrHint.SINGLE_LINE], char_whitelist=known_tagchars).text.replace(' ', '')
-    cookedtags = []
-    for img in tagimgs:
+    cookedtags = {}
+    for tag_rect in tag_rects:
+        img = screen.crop(tag_rect).convert('L')
         logger.logimage(img)
         tag = recognize(img)
         logger.logtext(tag)
         if not tag:
             continue
         if tag in known_tags:
-            cookedtags.append(tag)
+            cookedtags[tag] = tag_rect
             continue
         distances = [(target, textdistance.levenshtein(tag, target)) for target in known_tags.difference(cookedtags)]
         distances.sort(key=lambda x: x[1])
@@ -49,12 +56,12 @@ def get_recruit_tags(img):
         matches = [x[0] for x in distances if x[1] == mindistance]
         if mindistance > 2:
             logger.logtext('autocorrect: minimum distance %d too large' % mindistance)
-            cookedtags.append(tag)
+            cookedtags[tag] = tag_rect
         elif len(matches) == 1:
             logger.logtext('autocorrect to %s, distance %d' % (matches[0], mindistance))
-            cookedtags.append(matches[0])
+            cookedtags[matches[0]] = tag_rect
         else:
             logger.logtext('autocorrect: failed to match in %s with distance %d' % (','.join(matches), mindistance))
-            cookedtags.append(tag)
+            cookedtags[tag] = tag_rect
 
     return cookedtags
