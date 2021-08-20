@@ -1,0 +1,21 @@
+{
+    "back_to_main": false,
+    "description": "点击返回键",
+    "prefer_mode": "match_template",
+    "records": [
+        {
+            "img": "step0.png",
+            "point": [
+                43,
+                37
+            ],
+            "raise_exception": true,
+            "repeat": 1,
+            "threshold": 0.7,
+            "type": "tap",
+            "wait_seconds_after_touch": 1
+        }
+    ],
+    "screen_height": 720,
+    "screen_width": 1280
+}

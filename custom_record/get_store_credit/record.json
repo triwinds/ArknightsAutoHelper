@@ -1,37 +1,37 @@
 {
     "back_to_main": true,
-    "description": "清空无人机",
+    "description": "收商店信用点",
     "prefer_mode": "match_template",
     "records": [
         {
             "img": "step0.png",
             "point": [
-                1004,
-                611
+                811,
+                491
             ],
             "raise_exception": true,
             "repeat": 1,
             "threshold": 0.7,
             "type": "tap",
-            "wait_seconds_after_touch": 5
+            "wait_seconds_after_touch": 2
         },
         {
             "img": "step1.png",
             "point": [
-                99,
-                379
+                1158,
+                94
             ],
             "raise_exception": true,
             "repeat": 1,
             "threshold": 0.7,
             "type": "tap",
-            "wait_seconds_after_touch": 3
+            "wait_seconds_after_touch": 2
         },
         {
             "img": "step2.png",
             "point": [
-                61,
-                598
+                1012,
+                38
             ],
             "raise_exception": true,
             "repeat": 1,
@@ -42,32 +42,8 @@
         {
             "img": "step3.png",
             "point": [
-                1221,
-                544
-            ],
-            "raise_exception": true,
-            "repeat": 1,
-            "threshold": 0.7,
-            "type": "tap",
-            "wait_seconds_after_touch": 2
-        },
-        {
-            "img": "step4.png",
-            "point": [
-                947,
-                335
-            ],
-            "raise_exception": true,
-            "repeat": 1,
-            "threshold": 0.7,
-            "type": "tap",
-            "wait_seconds_after_touch": 1
-        },
-        {
-            "img": "step5.png",
-            "point": [
-                939,
-                583
+                638,
+                644
             ],
             "raise_exception": true,
             "repeat": 1,

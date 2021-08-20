@@ -1,0 +1,21 @@
+{
+    "back_to_main": false,
+    "description": "tap_hire4",
+    "prefer_mode": "match_template",
+    "records": [
+        {
+            "img": "step0.png",
+            "point": [
+                949,
+                568
+            ],
+            "raise_exception": true,
+            "repeat": 1,
+            "threshold": 0.98,
+            "type": "tap",
+            "wait_seconds_after_touch": 1
+        }
+    ],
+    "screen_height": 720,
+    "screen_width": 1280
+}
