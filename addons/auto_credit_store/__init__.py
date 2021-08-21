@@ -4,7 +4,7 @@ from imgreco import inventory
 import cv2
 import numpy as np
 import imgreco
-from imgreco.ocr.cnocr import cnocr
+from imgreco.ocr.cnocr import cn_ocr
 from util.richlog import get_logger
 from logging import DEBUG, INFO, WARN, ERROR
 from addons.base import BaseAddOn
@@ -31,7 +31,7 @@ def get_credit_price(cv_screen, item_pos, ratio):
     price_img = cv2.cvtColor(price_img, cv2.COLOR_RGB2GRAY)
     price_img[price_img < 180] = 0
     price_img = cv2.cvtColor(price_img, cv2.COLOR_GRAY2RGB)
-    return int(''.join(cnocr.ocr_for_single_line(price_img)).strip())
+    return int(''.join(cn_ocr.ocr_for_single_line(price_img)).strip())
 
 
 def get_total_credit(pil_screen):
@@ -41,7 +41,7 @@ def get_total_credit(pil_screen):
     credit_img = cv2.cvtColor(credit_img, cv2.COLOR_RGB2GRAY)
     credit_img[credit_img < 140] = 0
     credit_img = cv2.cvtColor(credit_img, cv2.COLOR_GRAY2RGB)
-    return int(''.join(cnocr.ocr_for_single_line(credit_img)).strip())
+    return int(''.join(cn_ocr.ocr_for_single_line(credit_img)).strip())
 
 
 def get_value(item_id: str, item_name: str, item_type: str, quantity: int):

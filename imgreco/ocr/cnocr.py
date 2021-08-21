@@ -3,7 +3,7 @@ from .common import *
 import cv2
 import numpy as np
 
-cnocr = CnOcr(name='imgreco-cnocr')
+cn_ocr = CnOcr(name='imgreco-cnocr')
 
 is_online = False
 # OCR 过程是否需要网络
@@ -22,9 +22,13 @@ def check_supported():
 class MyCnOcr(OcrEngine):
     def recognize(self, image, ppi=70, hints=None, **kwargs):
         cv_img = cv2.cvtColor(np.asarray(image), cv2.COLOR_GRAY2RGB)
-        result = cnocr.ocr(cv_img)
+        result = cn_ocr.ocr(cv_img)
         line = [OcrLine([OcrWord(Rect(0, 0), w) for w in ocrline]) for ocrline in result]
         return OcrResult(line)
+
+
+def ocr_for_single_line(img):
+    return ''.join(cn_ocr.ocr_for_single_line(img)).strip()
 
 
 Engine = MyCnOcr

@@ -12,11 +12,11 @@ from cnocr import NUMBERS
 
 import imgreco
 from Arknights.helper import logger
-from imgreco.ocr.cnocr import cnocr
+from imgreco.ocr.cnocr import cn_ocr
 from addons.base import BaseAddOn
 import config
 
-ocr = cnocr
+ocr = cn_ocr
 
 
 character_cache_file = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'character_cache.json')
