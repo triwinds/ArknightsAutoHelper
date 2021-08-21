@@ -12,3 +12,4 @@ bottle-websocket==0.2.9
 # we will fallback to a customized Chrome/Chromium/Edge
 pywebview==3.4; sys_platform != 'win32' or python_version < '3.9'
 textdistance==4.2.1
+cnocr==1.2.2
