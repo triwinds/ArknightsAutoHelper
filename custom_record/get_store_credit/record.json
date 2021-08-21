@@ -33,7 +33,7 @@
                 1012,
                 38
             ],
-            "raise_exception": true,
+            "raise_exception": false,
             "repeat": 1,
             "threshold": 0.7,
             "type": "tap",
@@ -45,7 +45,7 @@
                 638,
                 644
             ],
-            "raise_exception": true,
+            "raise_exception": false,
             "repeat": 1,
             "threshold": 0.7,
             "type": "tap",
