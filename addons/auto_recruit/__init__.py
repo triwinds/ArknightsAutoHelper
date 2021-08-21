@@ -14,12 +14,13 @@ import imgreco
 from Arknights.helper import logger
 from imgreco.ocr.cnocr import cnocr
 from addons.base import BaseAddOn
+import config
 
 ocr = cnocr
 
 
 character_cache_file = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'character_cache.json')
-screenshot_root = os.path.join(os.path.realpath(os.path.dirname(__file__)), '../../screenshot')
+screenshot_root = config.SCREEN_SHOOT_SAVE_PATH
 
 
 @lru_cache(1)
