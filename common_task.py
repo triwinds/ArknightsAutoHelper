@@ -40,7 +40,6 @@ def main():
     logger.info('===清空无人机')
     helper.try_replay_record('clear_drones')
     AutoRecruitAddOn(helper).hire_all()
-    logger.info('===清空无人机')
 
     helper.clear_task()
 
@@ -61,4 +60,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    # hire_all(ArknightsHelper())
