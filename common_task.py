@@ -8,6 +8,7 @@ from datetime import datetime, timezone, timedelta
 from addons.auto_recruit import AutoRecruitAddOn, get_op_name
 from addons.auto_credit_store import AutoCreditStoreAddOn
 from addons.auto_shift import AutoShiftAddOn
+from imgreco.item import update_net
 
 task_cache_path = './common_task_cache.json'
 
@@ -33,6 +34,7 @@ def save_cache(task_cache):
 
 def main():
     print('do common task.')
+    update_net()
     task_cache = load_cache()
     helper = ArknightsHelper()
 
@@ -50,11 +52,12 @@ def main():
     if not task_cache['get_credit']:
         logger.info('===收取并使用信用点')
         helper.replay_custom_record('get_credit')
+        helper.replay_custom_record('get_store_credit')
         AutoCreditStoreAddOn(helper).run()
         task_cache['get_credit'] = True
     if not task_cache['auto_recruit']:
         logger.info('===自动公招')
-        AutoRecruitAddOn(helper).auto_recruit(3)
+        AutoRecruitAddOn(helper).auto_recruit(4)
         task_cache['auto_recruit'] = True
     else:
         logger.info('===清空公招刷新次数')

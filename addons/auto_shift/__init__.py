@@ -1,11 +1,12 @@
 import json
 import random
 import time
+import re
 
 from Arknights.helper import logger
 from addons.base import BaseAddOn
-from addons.common_cache import load_common_cache
-from imgreco.ocr.cnocr import ocr_for_single_line
+from addons.common_cache import load_game_data
+from imgreco.ocr.cnocr import ocr_for_single_line, ocr_and_correct
 from imgreco import util
 
 import cv2
@@ -24,7 +25,7 @@ open_shift_img = open_img('open_shift.png')
 
 current_shift_file = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'current_shift_cache.json')
 
-character_table = load_common_cache('character_table', force_update=False)
+character_table = load_game_data('character_table')
 cn_op_names = set()
 for cid, character_info in character_table.items():
     cn_op_names.add(character_info['name'])
@@ -54,6 +55,8 @@ room_rect_map = {
     'b401': (751, 579, 1055, 667)
 }
 
+shift_file_re = re.compile(r'shift(\d+)_cache.json')
+
 
 # 疲劳值 icon 半径 10
 def get_circles(gray_img, min_radius=8, max_radius=11):
@@ -77,7 +80,7 @@ def ocr_tag(tag, white_threshold=150):
     tag[tag < white_threshold] = 0
     tag = cv2.cvtColor(tag, cv2.COLOR_GRAY2RGB)
     # show_img(tag)
-    return ocr_for_single_line(tag)
+    return ocr_and_correct(tag, cn_op_names, model_name='densenet-lite-fc')
 
 
 def cvt2cv(pil_img, color=cv2.COLOR_BGR2RGB):
@@ -139,24 +142,57 @@ def group_pos(values):
     return res
 
 
+def get_max_seq():
+    plans = get_all_standard_shift_plan()
+    return plans[-1] if plans else -1
+
+
+def save_shift(shift_data, shift_name=None):
+    if not shift_name:
+        max_seq = get_max_seq()
+        shift_name = 'shift%03d' % (max_seq + 1)
+    filepath = os.path.join(os.path.realpath(os.path.dirname(__file__)), f'saved_shift/{shift_name}_cache.json')
+    with open(filepath, 'w', encoding='utf-8') as f:
+        json.dump(shift_data, f, ensure_ascii=False, indent=4)
+    logger.info(f'排班计划已保存至: {filepath}')
+
+
+def get_all_standard_shift_plan():
+    files = os.listdir(os.path.join(os.path.realpath(os.path.dirname(__file__)), 'saved_shift'))
+    res = []
+    for filename in files:
+        groups = shift_file_re.findall(filename)
+        if groups:
+            res.append(int(groups[0]))
+    res.sort()
+    return res
+
+
 class AutoShiftAddOn(BaseAddOn):
     def __init__(self, helper=None):
         super().__init__(helper)
         self.vw, self.vh = util.get_vwvh(self.helper.viewport)
 
-    def run(self, **kwargs):
-        current_shift_info = {'current_shift': 1, 'time': 0}
+    def run(self, force_run=False):
+        current_shift_info = {'current_shift_index': 0, 'time': 0}
         if os.path.exists(current_shift_file):
             with open(current_shift_file, 'r') as f:
-                current_shift_info = json.load(f)
-            if time.time() < current_shift_info.get('time', 0) + 3600 * 6:
-                logger.info(f'距离上次基建换班不到 6 小时, 跳过此次换班')
+                current_shift_info.update(json.load(f))
+            if not force_run and time.time() < current_shift_info.get('time', 0) + 3600 * 8:
+                logger.info(f'距离上次基建换班不到 8 小时, 跳过此次换班')
                 return
-        pending_shift = current_shift_info['current_shift'] % 2 + 1
-        logger.info(f'执行基建换班, 使用的排班方案为: {pending_shift}')
+        cur_idx = current_shift_info['current_shift_index']
+        plans = get_all_standard_shift_plan()
+        if not plans:
+            raise RuntimeError('未发现有效排班计划')
+        if cur_idx > len(plans):
+            pending_idx = 0
+        else:
+            pending_idx = (cur_idx + 1) % len(plans)
+        logger.info(f'执行基建换班, 使用的排班方案为: {plans[pending_idx]}')
         self.goto_building()
-        self.apply_shift(f'shift{pending_shift}_cache.json')
-        current_shift_info['current_shift'] = pending_shift
+        self.apply_shift_plan(plans[pending_idx])
+        current_shift_info['current_shift_index'] = pending_idx
         current_shift_info['time'] = int(time.time())
         with open(current_shift_file, 'w') as f:
             json.dump(current_shift_info, f)
@@ -185,15 +221,19 @@ class AutoShiftAddOn(BaseAddOn):
         return res
 
     def tap_clear(self):
+        logger.info('clear room...')
         vw, vh = self.vw, self.vh
         self.helper.tap_rect((100 * vw - 18.333 * vh, 0.833 * vh, 100 * vw - 4.722 * vh, 7.639 * vh))
+        time.sleep(1)
         screen = self.screenshot()
         cv_screen = cvt2cv(screen)
         if test_color([15, 15, 112], cv_screen[int(68.472 * vh)][-1]):
+            logger.info('confirm clear room...')
             self.helper.tap_rect((50 * vw + 4.861 * vh, 63.611 * vh, 50 * vw + 79.306 * vh, 73.333 * vh))
-        time.sleep(1)
+            time.sleep(1)
 
     def tap_confirm(self):
+        logger.info('confirm shift...')
         vw, vh = self.vw, self.vh
         confirm_rect = (100 * vw - 24.861 * vh, 90.417 * vh, 100 * vw - 3.056 * vh, 96.944 * vh)
         self.helper.tap_rect(confirm_rect)
@@ -204,11 +244,13 @@ class AutoShiftAddOn(BaseAddOn):
         time.sleep(1)
 
     def tap_back(self):
+        logger.info('go back...')
         vw, vh = self.vw, self.vh
         self.helper.tap_rect((2.222 * vh, 1.944 * vh, 22.361 * vh, 8.333 * vh))
         time.sleep(0.5)
 
     def tap_first_slot(self):
+        logger.info('open operator view...')
         vw, vh = self.vw, self.vh
         self.helper.tap_rect((100 * vw - 57.500 * vh, 12.361 * vh, 100 * vw - 14.583 * vh, 30.000 * vh))
 
@@ -256,12 +298,14 @@ class AutoShiftAddOn(BaseAddOn):
         infos = self.get_all_op_on_screen()
         return [op_info for op_info in infos if op_info['on_shift']]
 
-    def __swipe_screen(self, move, rand=100, origin_x=None, origin_y=None, swipe_time=random.randint(900, 1200)):
+    def __swipe_screen(self, move, rand=100, origin_x=None, origin_y=None, duration=None):
         origin_x = (origin_x or self.helper.viewport[0] // 2) + random.randint(-rand, rand)
         origin_y = (origin_y or self.helper.viewport[1] // 2) + random.randint(-rand, rand)
-        self.helper.adb.touch_swipe2((origin_x, origin_y), (move, max(250, move // 2)), swipe_time)
+        if duration is None:
+            duration = random.randint(600, 900)
+        self.helper.adb.touch_swipe2((origin_x, origin_y), (move, random.randint(-50, 50)), duration)
 
-    def dump_current_shift(self, save_file='shift_cache.json', choose_room: set = None, exclude_room={'b105', 'b305'}):
+    def dump_current_shift(self, shift_name: str = None, choose_room: set = None, exclude_room={'b105', 'b305'}):
         res = {}
         if choose_room and exclude_room:
             exclude_room -= choose_room
@@ -278,13 +322,18 @@ class AutoShiftAddOn(BaseAddOn):
             logger.info(f'{room}: {res[room]}')
             self.tap_back()
             self.tap_back()
-        if save_file:
-            with open(os.path.join(os.path.realpath(os.path.dirname(__file__)), save_file), 'w', encoding='utf-8') as f:
-                json.dump(res, f, ensure_ascii=False, indent=4)
+        save_shift(res, shift_name)
         return res
 
-    def apply_shift(self, shift_file='shift_cache.json'):
-        with open(os.path.join(os.path.realpath(os.path.dirname(__file__)), shift_file), 'r', encoding='utf-8') as f:
+    def apply_shift_plan(self, shift_plan: int):
+        self.apply_shift('shift%03d' % shift_plan)
+
+    def apply_shift(self, shift_name: str):
+        filepath = os.path.join(os.path.realpath(os.path.dirname(__file__)), f'saved_shift/{shift_name}_cache.json')
+        if not os.path.exists(filepath):
+            raise RuntimeError(f'文件不存在, filepath: {filepath}')
+        logger.info(f'使用配置: saved_shift/{shift_name}_cache.json')
+        with open(filepath, 'r', encoding='utf-8') as f:
             shift_schedule = json.load(f)
         for room, ops in shift_schedule.items():
             logger.info(f'applying room {room}: {ops}')
@@ -295,42 +344,52 @@ class AutoShiftAddOn(BaseAddOn):
 
             last_ops = set()
             cur_ops = set()
+            rc = 0
             scroll_flag = False
             while True:
                 op_infos = self.get_all_op_on_screen()
+                logger.debug(op_infos)
                 for op_info in op_infos:
                     cur_ops.add(op_info['op_name'])
                     if op_info['op_name'] in ops:
                         x, y = op_info['pos']
                         self.click((x + 50, y - 100), 0.1)
                         ops.remove(op_info['op_name'])
+                        logger.info(f"choose {op_info['op_name']}")
                 if not ops:
                     break
                 else:
                     scroll_flag = True
-                    move = -random.randint(self.helper.viewport[0] // 6, self.helper.viewport[0] // 5)
+                    move = -random.randint(self.helper.viewport[0] // 4, self.helper.viewport[0] // 3)
                     self.__swipe_screen(move, 50, self.helper.viewport[0] // 3 * 2)
                     self.helper.adb.touch_swipe2((self.helper.viewport[0] // 2,
                                                   self.helper.viewport[1] - 50), (1, 1), 10)
                 if last_ops == cur_ops:
-                    logger.error(f'apply room {room} fail, rest ops: {ops}')
-                    break
+                    if rc > 1:
+                        logger.error(f'apply room {room} fail, rest ops: {ops}')
+                        break
+                    else:
+                        rc += 1
+                        continue
                 else:
                     last_ops = cur_ops
                     cur_ops = set()
+                    rc = 0
             if scroll_flag:
+                self.__swipe_screen(self.helper.viewport[0] // 2, 50, duration=random.randint(300, 500))
                 logger.info(f'scroll back to the begin...')
                 last_ops = set()
                 while True:
+                    move = random.randint(self.helper.viewport[0] // 3, self.helper.viewport[0] // 2)
+                    self.__swipe_screen(move, 50, duration=random.randint(300, 500))
+                    time.sleep(0.5)
                     op_infos = self.get_all_op_on_screen()
                     cur_ops = set([i['op_name'] for i in op_infos])
-                    move = random.randint(self.helper.viewport[0] // 4, self.helper.viewport[0] // 3)
-                    self.__swipe_screen(move, 50, self.helper.viewport[0] // 3 * 2, swipe_time=random.randint(100, 300))
-                    time.sleep(0.5)
                     if last_ops == cur_ops:
                         break
                     # print(last_ops, cur_ops)
                     last_ops = cur_ops
+            time.sleep(0.5)
             self.tap_confirm()
             self.tap_back()
             if not ops:
@@ -344,9 +403,7 @@ class AutoShiftAddOn(BaseAddOn):
 
 
 if __name__ == '__main__':
-    # AutoShiftAddOn().dump_current_shift(save_file='shift_test_cache.json', choose_room={'b105'})
-    # AutoShiftAddOn().apply_shift('shift_test_cache.json')
-    # AutoShiftAddOn().dump_current_shift('shift2_cache.json', exclude_room={'control_room', 'b105', 'b305', 'b401'})
-    AutoShiftAddOn().apply_shift('shift2_cache.json')
+    # AutoShiftAddOn().dump_current_shift(exclude_room={'control_room', 'b105', 'b305', 'b401'})
+    # AutoShiftAddOn().apply_shift('saved_shift/shift2_cache.json')
     # AutoShiftAddOn().get_all_op_on_screen()
-    # AutoShiftAddOn().tap_clear()
+    AutoShiftAddOn().apply_shift_plan(1)

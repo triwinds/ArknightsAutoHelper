@@ -66,6 +66,7 @@ def update_net():
         with open(net_file, 'wb') as f:
             f.write(resp.content)
         _load_net.cache_clear()
+        load_index_info.cache_clear()
 
 
 def crop_item_middle_img(cv_item_img):

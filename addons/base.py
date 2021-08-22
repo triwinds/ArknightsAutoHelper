@@ -3,6 +3,29 @@ import random
 from Arknights.helper import ArknightsHelper
 from abc import ABC, abstractmethod
 import time
+import cv2
+from PIL import Image
+import numpy as np
+
+from imgreco import util
+
+
+def cv2pil(cv_img):
+    return Image.fromarray(cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB))
+
+
+def pil2cv(pil_img):
+    return cv2.cvtColor(np.asarray(pil_img), cv2.COLOR_BGR2RGB)
+
+
+def crop_cv_by_rect(cv_img, rect):
+    l, t, r, b = tuple(map(int, rect))
+    return cv_img[t:b, l:r]
+
+
+def show_img(img):
+    cv2.imshow('test', img)
+    cv2.waitKey()
 
 
 class BaseAddOn(ABC):
@@ -10,6 +33,7 @@ class BaseAddOn(ABC):
         if helper is None:
             helper = ArknightsHelper()
         self.helper = helper
+        self.vw, self.vh = util.get_vwvh(self.helper.viewport)
 
     @abstractmethod
     def run(self, **kwargs):

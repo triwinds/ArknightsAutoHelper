@@ -4,7 +4,7 @@ from imgreco import inventory
 import cv2
 import numpy as np
 import imgreco
-from imgreco.ocr.cnocr import cn_ocr
+from imgreco.ocr.cnocr import cn_ocr, ocr_for_single_line
 from util.richlog import get_logger
 from logging import DEBUG, INFO, WARN, ERROR
 from addons.base import BaseAddOn
@@ -26,12 +26,13 @@ def log_text(text, level=INFO):
 def get_credit_price(cv_screen, item_pos, ratio):
     x, y = item_pos
     x = x - int(50 * ratio)
-    y = y + int(78 * ratio)
+    y = y + int(76 * ratio)
     price_img = cv_screen[y:y + int(30 * ratio), x:x + int(120 * ratio)]
     price_img = cv2.cvtColor(price_img, cv2.COLOR_RGB2GRAY)
     price_img[price_img < 180] = 0
     price_img = cv2.cvtColor(price_img, cv2.COLOR_GRAY2RGB)
-    return int(''.join(cn_ocr.ocr_for_single_line(price_img)).strip())
+    res = int(ocr_for_single_line(price_img, '0123456789'))
+    return res
 
 
 def get_total_credit(pil_screen):
@@ -93,7 +94,7 @@ def find_what(dp, i, j, values, prices, item):  # 最优解情况
 
 class AutoCreditStoreAddOn(BaseAddOn):
     def run(self, **kwargs):
-        self.helper.replay_custom_record('get_store_credit')
+        self.helper.replay_custom_record('goto_credit_store')
         screen = self.helper.adb.screenshot()
         rich_logger.logimage(screen)
         total_credit = get_total_credit(screen)
@@ -124,10 +125,6 @@ class AutoCreditStoreAddOn(BaseAddOn):
             log_text(f'buy item: {picked_item}')
             self.click(picked_item['itemPos'])
             self.helper.replay_custom_record('buy_credit_item', quiet=True)
-
-    def click(self, pos, sleep=0.5):
-        self.helper.adb.touch_tap(pos)
-        time.sleep(sleep)
 
 
 if __name__ == '__main__':

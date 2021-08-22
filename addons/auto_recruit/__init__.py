@@ -12,8 +12,9 @@ from cnocr import NUMBERS
 
 import imgreco
 from Arknights.helper import logger
-from imgreco.ocr.cnocr import cn_ocr
+from imgreco.ocr.cnocr import cn_ocr, search_in_list
 from addons.base import BaseAddOn
+from addons.common_cache import load_game_data
 import config
 
 ocr = cn_ocr
@@ -27,62 +28,16 @@ screenshot_root = config.SCREEN_SHOOT_SAVE_PATH
 def get_character_name_map():
     en2cn = {}
     cn2en = {}
-    character_table = get_character_table()
+    character_table = load_game_data('character_table')
     for cid, info in character_table.items():
         en2cn[info['appellation'].upper()] = info['name']
         cn2en[info['name']] = info['appellation'].upper()
     return en2cn, cn2en
 
 
-def get_character_table():
-    if os.path.exists(character_cache_file):
-        with open(character_cache_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    else:
-        return download_character_table()
-
-
-def download_character_table():
-    print('下载角色信息...')
-    resp = requests.get('https://raw.fastgit.org/Kengxxiao/ArknightsGameData/master/zh_CN'
-                        '/gamedata/excel/character_table.json')
-    data = resp.json()
-    with open(character_cache_file, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False)
-    return data
-
-
 def pil2cv(pil_img):
     cv_img = np.asarray(pil_img)
     return cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
-
-
-# https://github.com/shuangluoxss/ArkAutoHR/blob/ce9c15bf7353a7a143787c93ec7c351ae6bd6fd9/auto_hr.py
-def str_similiar(s1, s2):
-    """
-    返回字符串s1与字符串s2的相似程度
-    """
-    score = 0
-    max_len = min(len(s1), len(s2))
-    if s1[:max_len] == s2[:max_len]:
-        score += 100 ** max_len
-    for sub_str_len in range(1, 6):  # 字串长度1至5
-        s1_set = set([s1[i:i + sub_str_len] for i in range(len(s1) + 1 - sub_str_len)])
-        s2_set = set([s2[i:i + sub_str_len] for i in range(len(s2) + 1 - sub_str_len)])
-        score += len(s1_set & s2_set) * 10 ** sub_str_len
-    return score
-
-
-def search_in_list(s_list, x, min_score=500):
-    """
-    寻找字符串数组s_list中与字符串x最接近的字符串并返回。若相似度不高或有两个字符串相似度相同，返回None
-    """
-    tmp_list = [(s, str_similiar(s, x)) for s in s_list]
-    tmp_list.sort(key=lambda x: x[1], reverse=True)
-    if tmp_list[0][1] > max(min_score, tmp_list[1][1]):
-        return tmp_list[0]
-    else:
-        return None, 0
 
 
 def get_ticket(screenshot):
@@ -116,8 +71,10 @@ def get_name(pil_screen):
 def get_name2(cv_screen):
     en2cn, cn2en = get_character_name_map()
     name_tag = cv_screen[567:601, 367:975]
-    name_tag = cv2.cvtColor(name_tag, cv2.COLOR_RGB2GRAY)
-    name_tag[name_tag < 140] = 0
+    # name_tag = cv2.cvtColor(name_tag, cv2.COLOR_RGB2GRAY)
+    # name_tag[name_tag < 140] = 0
+    # name_tag = cv2.cvtColor(name_tag, cv2.COLOR_GRAY2RGB)
+    # show_img(name_tag)
     ocr.set_cand_alphabet(string.digits + string.ascii_uppercase + '-')
     res = ocr.ocr_for_single_line(name_tag)
     ocr.set_cand_alphabet(None)
@@ -154,32 +111,45 @@ def crop_to_white(tag_img):
 
 def test():
     from PIL import Image
-    screen = Image.open('../../screenshot/recruit/1629463955-暗索.png')
-    cv_screen = cv2.cvtColor(np.asarray(screen), cv2.COLOR_BGR2RGB)
-    print(get_name(screen))
-    print(get_name2(cv_screen))
+    correct = 0
+    file_list = os.listdir('../../screenshot/recruit')
+    for filename in file_list:
+        screen = Image.open(f'../../screenshot/recruit/{filename}')
+        cv_screen = cv2.cvtColor(np.asarray(screen), cv2.COLOR_BGR2RGB)
+        print(filename)
+        real_name = get_name(screen)
+        test_name = get_name2(cv_screen)
+        print(real_name, test_name)
+        if real_name == test_name:
+            correct += 1
+            print('==============')
+        else:
+            print('--------------')
+    print(f'{correct}/{len(file_list)}, {correct/len(file_list)}')
 
 
 class AutoRecruitAddOn(BaseAddOn):
+    def __init__(self, helper=None):
+        super().__init__(helper)
+        self.min_rarity = 0.6
+
     def run(self, times=0):
         self.auto_recruit(times)
-
-    def click(self, pos, sleep=0.5):
-        self.helper.adb.touch_tap(pos)
-        time.sleep(sleep)
 
     def clear_refresh(self):
         self.helper.replay_custom_record('goto_hr_page')
         used_slot = []
         for _ in range(4):
             current_slot = self.choose_slot(used_slot)
+            if current_slot == -1:
+                return
             op_res, rect_map = self.helper.recruit_with_rect()
-            while not op_res[0][2] > 0:
+            while not op_res[0][2] > self.min_rarity:
                 if self.refresh_hr_tags():
                     op_res, rect_map = self.helper.recruit_with_rect()
                 else:
                     return
-            if op_res[0][2] > 0:
+            if op_res[0][2] > self.min_rarity:
                 self.helper.replay_custom_record('tap_back')
                 logger.info(f'存在高级标签组合 {op_res[0][0]}, 跳过.')
                 if current_slot == 4:
@@ -198,7 +168,7 @@ class AutoRecruitAddOn(BaseAddOn):
                 img_filename = f'{screenshot_root}/recruit/{int(time.time())}-{op_name}.png'
                 screen.save(img_filename)
                 logger.info(f'获得干员: {op_name}, 截图保存至: {img_filename}')
-                self.helper.adb.touch_tap((1223, 45))
+                self.click((1223, 45), 2)
 
     def choose_slot(self, used_slot):
         for tag_slot in range(4):
@@ -242,7 +212,7 @@ class AutoRecruitAddOn(BaseAddOn):
                 return
             op_res, rect_map = self.helper.recruit_with_rect()
 
-            while not op_res[0][2] > 0:
+            while not op_res[0][2] > self.min_rarity:
                 if self.refresh_hr_tags():
                     op_res, rect_map = self.helper.recruit_with_rect()
                 else:
@@ -250,7 +220,8 @@ class AutoRecruitAddOn(BaseAddOn):
             # 增加时长
             self.click((466, 286), 0)
             rarity = op_res[0][2]
-            tags_choose = op_res[0][0] if rarity > 0 else []
+            # ignore 支援机械
+            tags_choose = op_res[0][0] if rarity > self.min_rarity else []
             logger.info(f"选择标签: {tags_choose}")
             if rarity > 1:
                 logger.info(f"{current_slot} 号位置出现 4 星以上干员, 选择标签: {tags_choose}, 跳过此位置.")

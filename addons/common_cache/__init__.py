@@ -6,7 +6,7 @@ import json
 common_cache_config = {
     'character_table': {
         'type': 'net_json',
-        'filename': 'character_cache.json',
+        'filename': 'character_table_cache.json',
         'url': 'https://raw.fastgit.org/Kengxxiao/ArknightsGameData/master/zh_CN/gamedata/excel/character_table.json',
         'encoding': 'utf-8'
     },
@@ -47,3 +47,8 @@ def load_common_cache(cache_name, force_update=False):
     if info['type'] == 'net_json':
         return load_net_json_cache(info['filename'], info['url'], info.get('encoding', 'utf-8'), force_update)
     raise RuntimeError(f"Unknown type {info['type']}.")
+
+
+def load_game_data(table_name, force_update=False):
+    url = f'https://raw.fastgit.org/Kengxxiao/ArknightsGameData/master/zh_CN/gamedata/excel/{table_name}.json'
+    return load_net_json_cache(f'{table_name}_cache.json', url, 'utf-8', force_update)

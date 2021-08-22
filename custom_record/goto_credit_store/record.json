@@ -1,25 +1,25 @@
 {
-    "back_to_main": false,
-    "description": "刷新招募标签",
+    "back_to_main": true,
+    "description": "打开信用商店",
     "prefer_mode": "match_template",
     "records": [
         {
             "img": "step0.png",
             "point": [
-                956,
-                403
+                809,
+                492
             ],
             "raise_exception": true,
             "repeat": 1,
-            "threshold": 0.99,
+            "threshold": 0.7,
             "type": "tap",
-            "wait_seconds_after_touch": 2
+            "wait_seconds_after_touch": 1
         },
         {
             "img": "step1.png",
             "point": [
-                844,
-                495
+                1120,
+                108
             ],
             "raise_exception": true,
             "repeat": 1,

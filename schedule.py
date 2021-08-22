@@ -57,6 +57,10 @@ def clear_sanity_by_item():
 
 def main():
     while True:
+        # 重启 adb server, 以免产生奇怪的 bug
+        os.system('adb kill-server')
+        os.system('adb connect 127.0.0.1:7555')
+        time.sleep(1)
         logger.info(f'run schedule at {datetime.now()}')
         clear_sanity()
         common_task.main()
