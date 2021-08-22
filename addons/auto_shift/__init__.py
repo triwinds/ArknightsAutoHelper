@@ -22,6 +22,8 @@ overview_test_img = open_img('overview_test.png')
 zoom_test_img = open_img('zoom_test.png')
 open_shift_img = open_img('open_shift.png')
 
+current_shift_file = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'current_shift_cache.json')
+
 character_table = load_common_cache('character_table', force_update=False)
 cn_op_names = set()
 for cid, character_info in character_table.items():
@@ -137,13 +139,27 @@ def group_pos(values):
     return res
 
 
-class AutoCreditStoreAddOn(BaseAddOn):
+class AutoShiftAddOn(BaseAddOn):
     def __init__(self, helper=None):
         super().__init__(helper)
         self.vw, self.vh = util.get_vwvh(self.helper.viewport)
 
     def run(self, **kwargs):
-        pass
+        current_shift_info = {'current_shift': 1, 'time': 0}
+        if os.path.exists(current_shift_file):
+            with open(current_shift_file, 'r') as f:
+                current_shift_info = json.load(f)
+            if time.time() < current_shift_info.get('time', 0) + 3600 * 6:
+                logger.info(f'距离上次基建换班不到 6 小时, 跳过此次换班')
+                return
+        pending_shift = current_shift_info['current_shift'] % 2 + 1
+        logger.info(f'执行基建换班, 使用的排班方案为: {pending_shift}')
+        self.goto_building()
+        self.apply_shift(f'shift{pending_shift}_cache.json')
+        current_shift_info['current_shift'] = pending_shift
+        current_shift_info['time'] = int(time.time())
+        with open(current_shift_file, 'w') as f:
+            json.dump(current_shift_info, f)
 
     def get_all_op_on_screen(self, process_with_fixed_y=True):
         screen = self.screenshot()
@@ -175,6 +191,7 @@ class AutoCreditStoreAddOn(BaseAddOn):
         cv_screen = cvt2cv(screen)
         if test_color([15, 15, 112], cv_screen[int(68.472 * vh)][-1]):
             self.helper.tap_rect((50 * vw + 4.861 * vh, 63.611 * vh, 50 * vw + 79.306 * vh, 73.333 * vh))
+        time.sleep(1)
 
     def tap_confirm(self):
         vw, vh = self.vw, self.vh
@@ -184,10 +201,12 @@ class AutoCreditStoreAddOn(BaseAddOn):
         cv_screen = cvt2cv(screen)
         if test_color([113, 86, 6], cv_screen[-1][-1]):
             self.helper.tap_rect((50 * vw + 14.444 * vh, 90.278 * vh, 50 * vw + 84.861 * vh, 99.167 * vh))
+        time.sleep(1)
 
     def tap_back(self):
         vw, vh = self.vw, self.vh
         self.helper.tap_rect((2.222 * vh, 1.944 * vh, 22.361 * vh, 8.333 * vh))
+        time.sleep(0.5)
 
     def tap_first_slot(self):
         vw, vh = self.vw, self.vh
@@ -237,7 +256,7 @@ class AutoCreditStoreAddOn(BaseAddOn):
         infos = self.get_all_op_on_screen()
         return [op_info for op_info in infos if op_info['on_shift']]
 
-    def __swipe_screen(self, move, rand=100, origin_x=None, origin_y=None, swipe_time=random.randint(600, 900)):
+    def __swipe_screen(self, move, rand=100, origin_x=None, origin_y=None, swipe_time=random.randint(900, 1200)):
         origin_x = (origin_x or self.helper.viewport[0] // 2) + random.randint(-rand, rand)
         origin_y = (origin_y or self.helper.viewport[1] // 2) + random.randint(-rand, rand)
         self.helper.adb.touch_swipe2((origin_x, origin_y), (move, max(250, move // 2)), swipe_time)
@@ -265,7 +284,7 @@ class AutoCreditStoreAddOn(BaseAddOn):
         return res
 
     def apply_shift(self, shift_file='shift_cache.json'):
-        with open(shift_file, 'r', encoding='utf-8') as f:
+        with open(os.path.join(os.path.realpath(os.path.dirname(__file__)), shift_file), 'r', encoding='utf-8') as f:
             shift_schedule = json.load(f)
         for room, ops in shift_schedule.items():
             logger.info(f'applying room {room}: {ops}')
@@ -294,7 +313,7 @@ class AutoCreditStoreAddOn(BaseAddOn):
                     self.helper.adb.touch_swipe2((self.helper.viewport[0] // 2,
                                                   self.helper.viewport[1] - 50), (1, 1), 10)
                 if last_ops == cur_ops:
-                    logger.info(f'apply room {room} fail, rest ops: {ops}')
+                    logger.error(f'apply room {room} fail, rest ops: {ops}')
                     break
                 else:
                     last_ops = cur_ops
@@ -307,7 +326,7 @@ class AutoCreditStoreAddOn(BaseAddOn):
                     cur_ops = set([i['op_name'] for i in op_infos])
                     move = random.randint(self.helper.viewport[0] // 4, self.helper.viewport[0] // 3)
                     self.__swipe_screen(move, 50, self.helper.viewport[0] // 3 * 2, swipe_time=random.randint(100, 300))
-                    time.sleep(1)
+                    time.sleep(0.5)
                     if last_ops == cur_ops:
                         break
                     # print(last_ops, cur_ops)
@@ -321,12 +340,13 @@ class AutoCreditStoreAddOn(BaseAddOn):
         vw, vh = self.vw, self.vh
         self.helper.back_to_main()
         self.helper.tap_rect((100 * vw - 47.083 * vh, 80.278 * vh, 100 * vw - 21.806 * vh, 93.750 * vh))
+        time.sleep(5)
 
 
 if __name__ == '__main__':
-    # AutoCreditStoreAddOn().dump_current_shift(save_file='shift_test_cache.json', choose_room={'b105'})
-    # AutoCreditStoreAddOn().apply_shift('shift_test_cache.json')
-    # AutoCreditStoreAddOn().dump_current_shift('shift1_cache.json', exclude_room={'control_room', 'b105', 'b305', 'b401'})
-    AutoCreditStoreAddOn().apply_shift('shift1_cache.json')
-    # AutoCreditStoreAddOn().get_all_op_on_screen()
-    # AutoCreditStoreAddOn().tap_clear()
+    # AutoShiftAddOn().dump_current_shift(save_file='shift_test_cache.json', choose_room={'b105'})
+    # AutoShiftAddOn().apply_shift('shift_test_cache.json')
+    # AutoShiftAddOn().dump_current_shift('shift2_cache.json', exclude_room={'control_room', 'b105', 'b305', 'b401'})
+    AutoShiftAddOn().apply_shift('shift2_cache.json')
+    # AutoShiftAddOn().get_all_op_on_screen()
+    # AutoShiftAddOn().tap_clear()

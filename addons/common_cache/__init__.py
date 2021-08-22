@@ -45,5 +45,5 @@ def load_common_cache(cache_name, force_update=False):
     if not info:
         raise RuntimeError(f'[{cache_name}] is not exists.')
     if info['type'] == 'net_json':
-        load_net_json_cache(info['filename'], info['url'], info.get('encoding', 'utf-8'), force_update)
+        return load_net_json_cache(info['filename'], info['url'], info.get('encoding', 'utf-8'), force_update)
     raise RuntimeError(f"Unknown type {info['type']}.")

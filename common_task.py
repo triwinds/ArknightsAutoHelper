@@ -7,6 +7,7 @@ import os
 from datetime import datetime, timezone, timedelta
 from addons.auto_recruit import AutoRecruitAddOn, get_op_name
 from addons.auto_credit_store import AutoCreditStoreAddOn
+from addons.auto_shift import AutoShiftAddOn
 
 task_cache_path = './common_task_cache.json'
 
@@ -42,6 +43,9 @@ def main():
     AutoRecruitAddOn(helper).hire_all()
 
     helper.clear_task()
+
+    logger.info('===基建换班')
+    AutoShiftAddOn(helper).run()
 
     if not task_cache['get_credit']:
         logger.info('===收取并使用信用点')
