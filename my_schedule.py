@@ -6,6 +6,8 @@ import common_task
 from Arknights.helper import ArknightsHelper, logger
 import os
 import json
+import schedule
+import config
 
 
 def is_in_event():
@@ -55,19 +57,37 @@ def clear_sanity_by_item():
     # helper.module_battle('1-7')
 
 
-def main():
-    while True:
-        # 重启 adb server, 以免产生奇怪的 bug
+def send_by_tg_bot(chat_id, title, content):
+    # @shadowfox_MsgCat_bot
+    result = requests.post('https://msgcat.shadowfox.workers.dev/sendMsg',
+                           json={'chatId': chat_id, 'title': title, 'content': content})
+    return result
+
+
+def do_works():
+    # 重启 adb server, 以免产生奇怪的 bug
+    try:
         os.system('adb kill-server')
         os.system('adb connect 127.0.0.1:7555')
         time.sleep(1)
         logger.info(f'run schedule at {datetime.now()}')
         clear_sanity()
         common_task.main()
-        sleep_time = 3600 * 4
-        # sleep_time = 1
-        logger.info(f'Done, next round will run at {datetime.fromtimestamp(time.time() + sleep_time)}')
-        time.sleep(sleep_time)
+        logger.info(f'next time run at: {schedule.next_run()}')
+        time.sleep(60)
+    except Exception as e:
+        send_by_tg_bot(config.get('notify/chat_id'), 'arh-fail', str(e))
+        raise e
+
+
+def main():
+    times = ['00:00', '04:15', '08:00', '12:00', '16:15', '20:00']
+    for ts in times:
+        schedule.every().day.at(ts).do(do_works)
+    schedule.run_all()
+    while True:
+        schedule.run_pending()
+        time.sleep(schedule.idle_seconds())
 
 
 if __name__ == '__main__':
