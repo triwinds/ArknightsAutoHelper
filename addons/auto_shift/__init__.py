@@ -80,7 +80,7 @@ def ocr_tag(tag, white_threshold=150):
     tag[tag < white_threshold] = 0
     tag = cv2.cvtColor(tag, cv2.COLOR_GRAY2RGB)
     # show_img(tag)
-    return ocr_and_correct(tag, cn_op_names, model_name='densenet-lite-fc')
+    return ocr_and_correct(tag, cn_op_names, model_name='densenet-s-fc')
 
 
 def cvt2cv(pil_img, color=cv2.COLOR_BGR2RGB):
@@ -352,10 +352,13 @@ class AutoShiftAddOn(BaseAddOn):
                 for op_info in op_infos:
                     cur_ops.add(op_info['op_name'])
                     if op_info['op_name'] in ops:
-                        x, y = op_info['pos']
-                        self.click((x + 50, y - 100), 0.1)
+                        if not op_info['on_shift']:
+                            logger.info(f"choose {op_info['op_name']}")
+                            x, y = op_info['pos']
+                            self.click((x + 50, y - 100), 0.1)
+                        else:
+                            logger.info(f"{op_info['op_name']} is already in shift.")
                         ops.remove(op_info['op_name'])
-                        logger.info(f"choose {op_info['op_name']}")
                 if not ops:
                     break
                 else:
@@ -370,30 +373,34 @@ class AutoShiftAddOn(BaseAddOn):
                         break
                     else:
                         rc += 1
+                        logger.info(f'miss ops {ops} when applying room {room}. Scroll back and try again.')
+                        self.scroll_back_to_begin()
                         continue
                 else:
                     last_ops = cur_ops
                     cur_ops = set()
-                    rc = 0
             if scroll_flag:
-                self.__swipe_screen(self.helper.viewport[0] // 2, 50, duration=random.randint(300, 500))
-                logger.info(f'scroll back to the begin...')
-                last_ops = set()
-                while True:
-                    move = random.randint(self.helper.viewport[0] // 3, self.helper.viewport[0] // 2)
-                    self.__swipe_screen(move, 50, duration=random.randint(300, 500))
-                    time.sleep(0.5)
-                    op_infos = self.get_all_op_on_screen()
-                    cur_ops = set([i['op_name'] for i in op_infos])
-                    if last_ops == cur_ops:
-                        break
-                    # print(last_ops, cur_ops)
-                    last_ops = cur_ops
+                self.scroll_back_to_begin()
             time.sleep(0.5)
             self.tap_confirm()
             self.tap_back()
             if not ops:
                 logger.info(f'apply room {room} success!')
+
+    def scroll_back_to_begin(self):
+        logger.info(f'scroll back to the begin...')
+        last_ops = set()
+        while True:
+            for _ in range(2):
+                move = random.randint(self.helper.viewport[0] // 3, self.helper.viewport[0] // 2)
+                self.__swipe_screen(move, 50, duration=random.randint(300, 500))
+            time.sleep(0.5)
+            op_infos = self.get_all_op_on_screen()
+            cur_ops = set([i['op_name'] for i in op_infos])
+            if last_ops == cur_ops:
+                break
+            # print(last_ops, cur_ops)
+            last_ops = cur_ops
 
     def goto_building(self):
         vw, vh = self.vw, self.vh
@@ -405,5 +412,5 @@ class AutoShiftAddOn(BaseAddOn):
 if __name__ == '__main__':
     # AutoShiftAddOn().dump_current_shift(exclude_room={'control_room', 'b105', 'b305', 'b401'})
     # AutoShiftAddOn().apply_shift('saved_shift/shift2_cache.json')
-    # AutoShiftAddOn().get_all_op_on_screen()
-    AutoShiftAddOn().apply_shift_plan(1)
+    # print(AutoShiftAddOn().get_all_op_on_screen())
+    AutoShiftAddOn().apply_shift_plan(0)

@@ -6,8 +6,9 @@ import common_task
 from Arknights.helper import ArknightsHelper, logger
 import os
 import json
-import schedule
+from apscheduler.schedulers.blocking import BlockingScheduler
 import config
+from imgreco.item import update_net
 
 
 def is_in_event():
@@ -69,25 +70,26 @@ def do_works():
     try:
         os.system('adb kill-server')
         os.system('adb connect 127.0.0.1:7555')
-        time.sleep(1)
+        update_net()
         logger.info(f'run schedule at {datetime.now()}')
         clear_sanity()
         common_task.main()
-        logger.info(f'next time run at: {schedule.next_run()}')
+        logger.info(f'finish at: {datetime.now()}')
         time.sleep(60)
     except Exception as e:
         send_by_tg_bot(config.get('notify/chat_id'), 'arh-fail', str(e))
         raise e
 
 
+def test():
+    print(datetime.now())
+
+
 def main():
-    times = ['00:00', '04:15', '08:00', '12:00', '16:15', '20:00']
-    for ts in times:
-        schedule.every().day.at(ts).do(do_works)
-    schedule.run_all()
-    while True:
-        schedule.run_pending()
-        time.sleep(schedule.idle_seconds())
+    do_works()
+    scheduler = BlockingScheduler()
+    scheduler.add_job(do_works, 'cron', hour='*/4', minute=15)
+    scheduler.start()
 
 
 if __name__ == '__main__':

@@ -18,6 +18,11 @@ icon1 = cv2.imread(os.path.join(os.path.realpath(os.path.dirname(__file__)), 'ic
 icon2 = cv2.imread(os.path.join(os.path.realpath(os.path.dirname(__file__)), 'icon2.png'), cv2.IMREAD_GRAYSCALE)
 
 
+special_zone_actions = {
+    'act11d7_zone2': {'type': 'custom_record', 'record_name': 'switch_to_act11d7_zone2'}
+}
+
+
 @lru_cache(maxsize=1)
 def get_activity_infos():
     return load_game_data('activity_table')['basicInfo']
@@ -81,9 +86,18 @@ class StartSpStageAddon(BaseAddOn):
         activity = activity_infos[activity_id]
         logger.debug(f'stage: {stage}, activity: {activity}')
         self.enter_activity(activity)
+        self.after_enter_activity(stage)
         stage_linear = zone_linear_map[stage['zoneId']]
+        logger.info(f"stage zone id: {stage['zoneId']}, stage_linear: {stage_linear}")
         self.helper.find_and_tap_stage_by_ocr(None, stage_code, stage_linear)
         self.helper.module_battle_slim(None, repeat_times)
+
+    def after_enter_activity(self, stage):
+        zone_id = stage['zoneId']
+        if zone_id in special_zone_actions:
+            zone_act = special_zone_actions[zone_id]
+            if zone_act['type'] == 'custom_record':
+                self.helper.replay_custom_record(zone_act['record_name'])
 
     def enter_activity(self, activity):
         vh = self.vh
@@ -169,7 +183,7 @@ class StartSpStageAddon(BaseAddOn):
                 tag_img = cv2.resize(tag_img, (0, 0), fx=factor, fy=factor, interpolation=cv2.INTER_LINEAR)
             # show_img(tag_img)
             # conv-lite-fc has better accuracy, but it is slower than densenet-lite-fc.
-            name = ocr_and_correct(tag_img, available_activity, model_name='densenet-lite-fc', log_level=logging.INFO)
+            name = ocr_and_correct(tag_img, available_activity, model_name='densenet-s-fc', log_level=logging.INFO)
             if name:
                 res[name] = (int(l + 85 * self.scale), int(t + 20 * self.scale))
             cv2.rectangle(dbg_screen, (l, t), (l + tw, t + th), (255, 255, 0), 2)
@@ -202,5 +216,5 @@ class StartSpStageAddon(BaseAddOn):
 
 
 if __name__ == '__main__':
-    # StartSpStageAddon().run('CB-10', 0, False)
-    StartSpStageAddon().get_all_act_pos()
+    StartSpStageAddon().run('OF-F4', 0, False)
+    # StartSpStageAddon().get_all_act_pos()

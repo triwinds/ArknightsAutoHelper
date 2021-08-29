@@ -4,7 +4,7 @@ from imgreco import inventory
 import cv2
 import numpy as np
 import imgreco
-from imgreco.ocr.cnocr import cn_ocr, ocr_for_single_line
+from imgreco.ocr.cnocr import cn_ocr, do_ocr, ocr_for_single_line
 from util.richlog import get_logger
 from logging import DEBUG, INFO, WARN, ERROR
 from addons.base import BaseAddOn
@@ -31,18 +31,22 @@ def get_credit_price(cv_screen, item_pos, ratio):
     price_img = cv2.cvtColor(price_img, cv2.COLOR_RGB2GRAY)
     price_img[price_img < 180] = 0
     price_img = cv2.cvtColor(price_img, cv2.COLOR_GRAY2RGB)
-    res = int(ocr_for_single_line(price_img, '0123456789'))
+    res = int(do_ocr(price_img, '0123456789'))
     return res
 
 
 def get_total_credit(pil_screen):
     vw, vh = imgreco.util.get_vwvh(pil_screen.size)
-    rect = tuple(map(int, (100*vw-19.583*vh, 3.056*vh, 100*vw-1.528*vh, 7.500*vh)))
+    rect = tuple(map(int, (100*vw-20.139*vh, 3.333*vh, 100*vw-2.361*vh, 7.500*vh)))
     credit_img = cv2.cvtColor(np.asarray(pil_screen.crop(rect)), cv2.COLOR_BGR2RGB)
+    raw_credit_img = credit_img.copy()
     credit_img = cv2.cvtColor(credit_img, cv2.COLOR_RGB2GRAY)
     credit_img[credit_img < 140] = 0
-    credit_img = cv2.cvtColor(credit_img, cv2.COLOR_GRAY2RGB)
-    return int(''.join(cn_ocr.ocr_for_single_line(credit_img)).strip())
+    # credit_img = cv2.resize(credit_img, (0, 0), fx=1.5, fy=1.5)
+    credit_img = crop_image_only_outside(credit_img, raw_credit_img, padding=6)
+    # credit_img = cv2.cvtColor(credit_img, cv2.COLOR_GRAY2RGB)
+    # show_img(credit_img)
+    return int(ocr_for_single_line(credit_img))
 
 
 def get_value(item_id: str, item_name: str, item_type: str, quantity: int):
@@ -92,6 +96,15 @@ def find_what(dp, i, j, values, prices, item):  # 最优解情况
             find_what(dp, i - 1, j - prices[i], values, prices, item)
 
 
+def crop_image_only_outside(gray_img, raw_img, threshold=128, padding=3):
+    mask = gray_img > threshold
+    m, n = gray_img.shape[:2]
+    mask0, mask1 = mask.any(0), mask.any(1)
+    col_start, col_end = mask0.argmax(), n - mask0[::-1].argmax()
+    row_start, row_end = mask1.argmax(), m - mask1[::-1].argmax()
+    return raw_img[row_start - padding:row_end + padding, col_start - padding:col_end + padding]
+
+
 class AutoCreditStoreAddOn(BaseAddOn):
     def run(self, **kwargs):
         self.helper.replay_custom_record('goto_credit_store')
@@ -129,3 +142,6 @@ class AutoCreditStoreAddOn(BaseAddOn):
 
 if __name__ == '__main__':
     AutoCreditStoreAddOn().run()
+    # print(get_total_credit(AutoCreditStoreAddOn().screenshot()))
+    # from PIL import Image
+    # print(get_total_credit(Image.open('../../screenshots/test58.png')))

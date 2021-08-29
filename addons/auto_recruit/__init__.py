@@ -1,24 +1,19 @@
-import json
+import os
 import re
 import string
 import time
-import os
-import requests
 from functools import lru_cache
 
 import cv2
 import numpy as np
 from cnocr import NUMBERS
 
+import config
 import imgreco
 from Arknights.helper import logger
-from imgreco.ocr.cnocr import cn_ocr, search_in_list
 from addons.base import BaseAddOn
 from addons.common_cache import load_game_data
-import config
-
-ocr = cn_ocr
-
+from imgreco.ocr.cnocr import ocr_for_single_line, ocr_and_correct
 
 character_cache_file = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'character_cache.json')
 screenshot_root = config.SCREEN_SHOOT_SAVE_PATH
@@ -41,9 +36,7 @@ def pil2cv(pil_img):
 
 
 def get_ticket(screenshot):
-    ocr.set_cand_alphabet(cand_alphabet=NUMBERS)
-    item = ''.join(ocr.ocr_for_single_line(254-screenshot[661:684, 513:586]))
-    ocr.set_cand_alphabet(cand_alphabet=None)
+    item = ''.join(ocr_for_single_line(254-screenshot[661:684, 513:586], cand_alphabet=NUMBERS))
     item = re.sub(r'[^0-9]', '', item)[:-1]
     return item
 
@@ -60,7 +53,7 @@ def get_name(pil_screen):
     # show_img(tag_img)
     tag_img = crop_to_white(tag_img)
     # show_img(tag_img)
-    res = ocr.ocr_for_single_line(tag_img)
+    res = ocr_for_single_line(tag_img)
     res = ''.join(res).strip()
     logger.debug('get_name: %s' % res)
     if res.endswith('的信物'):
@@ -75,13 +68,9 @@ def get_name2(cv_screen):
     # name_tag[name_tag < 140] = 0
     # name_tag = cv2.cvtColor(name_tag, cv2.COLOR_GRAY2RGB)
     # show_img(name_tag)
-    ocr.set_cand_alphabet(string.digits + string.ascii_uppercase + '-')
-    res = ocr.ocr_for_single_line(name_tag)
-    ocr.set_cand_alphabet(None)
-    res = ''.join(res)
-    logger.debug('get_name2: %s' % res)
-    en_name, score = search_in_list(en2cn, res)
-    logger.debug(f'en_name, score: {en_name, score}')
+    cand_alphabet = string.digits + string.ascii_uppercase + '-'
+    en_name = ocr_and_correct(name_tag, en2cn, cand_alphabet=cand_alphabet, log_level=20)
+    logger.debug('get_name2: %s' % en_name)
     return en2cn.get(en_name)
 
 
@@ -234,5 +223,5 @@ class AutoRecruitAddOn(BaseAddOn):
 
 if __name__ == '__main__':
     # AutoRecruitAddOn().hire_all()
-
-    test()
+    AutoRecruitAddOn().auto_recruit(4)
+    # test()
