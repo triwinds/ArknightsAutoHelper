@@ -183,7 +183,7 @@ class StartSpStageAddon(BaseAddOn):
                 tag_img = cv2.resize(tag_img, (0, 0), fx=factor, fy=factor, interpolation=cv2.INTER_LINEAR)
             # show_img(tag_img)
             # conv-lite-fc has better accuracy, but it is slower than densenet-lite-fc.
-            name = ocr_and_correct(tag_img, available_activity, model_name='densenet-s-fc', log_level=logging.INFO)
+            name = ocr_and_correct(tag_img, available_activity, model_name='densenet-lite-fc', log_level=logging.INFO)
             if name:
                 res[name] = (int(l + 85 * self.scale), int(t + 20 * self.scale))
             cv2.rectangle(dbg_screen, (l, t), (l + tw, t + th), (255, 255, 0), 2)

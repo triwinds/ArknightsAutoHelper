@@ -113,7 +113,8 @@ class ActivityAddOn(BaseAddOn):
                 else:
                     raise e
         self.helper.find_and_tap_stage_by_ocr(None, target_stage_code, stage_linear)
-        self.helper.module_battle_slim(None, repeat_times)
+        return self.helper.module_battle_slim(target_stage_code, repeat_times)
+
 
 if __name__ == '__main__':
     addon = ActivityAddOn()
