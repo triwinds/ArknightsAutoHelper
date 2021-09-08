@@ -4,7 +4,6 @@ import cv2
 import numpy as np
 from functools import lru_cache
 import logging
-from itertools import chain, combinations
 
 
 is_online = False
@@ -15,11 +14,11 @@ info = "cnocr"
 
 
 @lru_cache()
-def get_ocr(model_name='densenet-s-fc'):
-    return CnOcr(model_name=model_name)
+def get_ocr(model_name='densenet-lite-fc'):
+    return CnOcr(name=f'imgreco-{model_name}', model_name=model_name)
 
 
-cn_ocr = get_ocr('densenet-s-fc')
+cn_ocr = get_ocr('densenet-lite-fc')
 
 
 # 模块说明，用于在 log 中显示
@@ -33,14 +32,14 @@ class MyCnOcr(OcrEngine):
     def recognize(self, image, ppi=70, hints=None, **kwargs):
         cv_img = cv2.cvtColor(np.asarray(image), cv2.COLOR_GRAY2RGB)
         result = cn_ocr.ocr(cv_img)
-        line = [OcrLine([OcrWord(Rect(0, 0), w[0]) for w in ocrline[0]]) for ocrline in result]
+        line = [OcrLine([OcrWord(Rect(0, 0), w) for w in ocrline]) for ocrline in result]
         return OcrResult(line)
 
 
 def ocr_for_single_line(img, cand_alphabet: str = None, ocr=cn_ocr):
     if cand_alphabet:
         ocr.set_cand_alphabet(cand_alphabet)
-    res = ''.join(ocr.ocr_for_single_line(img)[0]).strip()
+    res = ''.join(ocr.ocr_for_single_line(img)).strip()
     if cand_alphabet:
         ocr.set_cand_alphabet(None)
     return res
@@ -52,7 +51,7 @@ def do_ocr(img, cand_alphabet: str = None, ocr=cn_ocr):
     res = ''
     ocr_result = ocr.ocr(img)
     for line in ocr_result:
-        for ch in line[0]:
+        for ch in line:
             res += ch
     res = res.strip()
     if cand_alphabet:
@@ -77,7 +76,7 @@ def search_in_list(s_list, x, min_score=0.5):
         return res, max_sim
 
 
-def ocr_and_correct(img, s_list, cand_alphabet: str = None, min_score=0.5, log_level=None, model_name='densenet-s-gru'):
+def ocr_and_correct(img, s_list, cand_alphabet: str = None, min_score=0.5, log_level=None, model_name='conv-lite-fc'):
     ocr = get_ocr(model_name)
     ocr_str = ocr_for_single_line(img, cand_alphabet, ocr)
     res = search_in_list(s_list, ocr_str, min_score)
