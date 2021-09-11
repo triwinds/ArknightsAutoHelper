@@ -9,6 +9,8 @@ import json
 from apscheduler.schedulers.blocking import BlockingScheduler
 import config
 from imgreco.item import update_net
+from addons.restart_mumu import restart_all
+import traceback
 
 
 def is_in_event():
@@ -77,7 +79,7 @@ def do_works():
         logger.info(f'finish at: {datetime.now()}')
         time.sleep(60)
     except Exception as e:
-        send_by_tg_bot(config.get('notify/chat_id'), 'arh-fail', str(e))
+        send_by_tg_bot(config.get('notify/chat_id'), 'arh-fail', traceback.format_exc())
         raise e
 
 
@@ -88,6 +90,7 @@ def test():
 def main():
     do_works()
     scheduler = BlockingScheduler()
+    scheduler.add_job(restart_all, 'cron', day='*/2', hour=4, minute=5)
     scheduler.add_job(do_works, 'cron', hour='*/4', minute=15)
     scheduler.start()
 

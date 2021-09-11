@@ -12,4 +12,6 @@ bottle-websocket==0.2.9
 # we will fallback to a customized Chrome/Chromium/Edge
 pywebview==3.4; sys_platform != 'win32' or python_version < '3.9'
 textdistance==4.2.1
-apscheduler==3.7.0
+apscheduler
+bs4
+pywinauto
