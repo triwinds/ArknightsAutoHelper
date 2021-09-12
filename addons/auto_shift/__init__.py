@@ -80,7 +80,7 @@ def ocr_tag(tag, white_threshold=150):
     tag[tag < white_threshold] = 0
     tag = cv2.cvtColor(tag, cv2.COLOR_GRAY2RGB)
     # show_img(tag)
-    return ocr_and_correct(tag, cn_op_names, model_name='densenet-s-fc')
+    return ocr_and_correct(tag, cn_op_names, model_name='densenet-lite-fc')
 
 
 def cvt2cv(pil_img, color=cv2.COLOR_BGR2RGB):
@@ -174,12 +174,13 @@ class AutoShiftAddOn(BaseAddOn):
         self.vw, self.vh = util.get_vwvh(self.helper.viewport)
 
     def run(self, force_run=False):
+        shift_hours = 6
         current_shift_info = {'current_shift_index': 0, 'time': 0}
         if os.path.exists(current_shift_file):
             with open(current_shift_file, 'r') as f:
                 current_shift_info.update(json.load(f))
-            if not force_run and time.time() < current_shift_info.get('time', 0) + 3600 * 8:
-                logger.info(f'距离上次基建换班不到 8 小时, 跳过此次换班')
+            if not force_run and time.time() < current_shift_info.get('time', 0) + 3600 * shift_hours:
+                logger.info(f'距离上次基建换班不到 {shift_hours} 小时, 跳过此次换班')
                 return
         cur_idx = current_shift_info['current_shift_index']
         plans = get_all_standard_shift_plan()

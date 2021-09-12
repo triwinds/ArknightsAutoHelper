@@ -56,14 +56,14 @@ def update_net():
         with open(index_file, 'r', encoding='utf-8') as f:
             local_rel = json.load(f)
             local_cache_time = local_rel['time']
-    resp = retry_get('https://cdn.jsdelivr.net/gh/triwinds/arknights-ml@latest/inventory/index_itemid_relation.json')
+    resp = retry_get('https://cdn.jsdelivr.net/gh/triwinds/arknights-ml@main/inventory/index_itemid_relation.json')
     remote_relation = resp.json()
     if remote_relation['time'] > local_cache_time:
         from datetime import datetime
         print(f'更新物品识别模型, 模型生成时间: {datetime.fromtimestamp(remote_relation["time"]/1000).strftime("%Y-%m-%d %H:%M:%S")}')
         with open(index_file, 'w', encoding='utf-8') as f:
             json.dump(remote_relation, f, ensure_ascii=False)
-        resp = retry_get('https://cdn.jsdelivr.net/gh/triwinds/arknights-ml@latest/inventory/ark_material.onnx')
+        resp = retry_get('https://cdn.jsdelivr.net/gh/triwinds/arknights-ml@main/inventory/ark_material.onnx')
         with open(net_file, 'wb') as f:
             f.write(resp.content)
         _load_net.cache_clear()
