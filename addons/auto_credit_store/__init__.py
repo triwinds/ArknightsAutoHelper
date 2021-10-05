@@ -46,7 +46,8 @@ def get_total_credit(pil_screen):
     credit_img = crop_image_only_outside(credit_img, raw_credit_img, padding=6)
     # credit_img = cv2.cvtColor(credit_img, cv2.COLOR_GRAY2RGB)
     # show_img(credit_img)
-    return int(ocr_for_single_line(credit_img))
+    s = ocr_for_single_line(credit_img).upper().replace('S', '5').replace('O', '0')
+    return int(s)
 
 
 def get_value(item_id: str, item_name: str, item_type: str, quantity: int):

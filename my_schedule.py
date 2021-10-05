@@ -54,10 +54,10 @@ def clear_sanity_by_item():
     except Exception as e:
         print(e)
 
-    # from addons.grass_on_aog import GrassAddOn
-    # GrassAddOn().run()
-    helper = ArknightsHelper()
-    helper.module_battle('9-6')
+    from addons.grass_on_aog import GrassAddOn
+    GrassAddOn().run()
+    # helper = ArknightsHelper()
+    # helper.module_battle('9-18')
 
 
 def send_by_tg_bot(chat_id, title, content):
@@ -74,7 +74,7 @@ def do_works():
         os.system('adb connect 127.0.0.1:7555')
         update_net()
         logger.info(f'run schedule at {datetime.now()}')
-        # clear_sanity()
+        clear_sanity()
         common_task.main()
         logger.info(f'finish at: {datetime.now()}')
         time.sleep(60)
