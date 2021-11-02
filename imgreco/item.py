@@ -165,16 +165,19 @@ def tell_item(itemimg, with_quantity=True, learn_unrecognized=False):
     logger.logtext(repr(scores[:5]))
     diffs = np.diff([a[1] for a in scores])
     item_type = None
-    if score < 800 and np.any(diffs > 600):
+    if score < 800 and np.any(diffs > 600) and not itemname.startswith('未知物品-'):
         logger.logtext('matched %s with mse %f' % (itemname, score))
         name = itemname
     else:
         prob, item_id, name, item_type = get_item_id(common.convert_to_cv(itemimg))
         logger.logtext(f'dnn matched {name} with prob {prob}')
         if prob < 0.8 or item_id == 'other':
-            logger.logtext('no match')
-            low_confidence = True
-            name = None
+            if itemname.startswith('未知物品-'):
+                name = itemname
+            else:
+                logger.logtext('no match')
+                low_confidence = True
+                name = None
 
     if name is None and learn_unrecognized:
         name = itemdb.add_item(itemimg)
