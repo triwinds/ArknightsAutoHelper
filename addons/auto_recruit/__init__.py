@@ -120,7 +120,7 @@ def test():
 class AutoRecruitAddOn(BaseAddOn):
     def __init__(self, helper=None):
         super().__init__(helper)
-        self.min_rarity = 0.6
+        self.min_rarity = 0.1
 
     def run(self, times=0):
         self.auto_recruit(times)
@@ -206,12 +206,14 @@ class AutoRecruitAddOn(BaseAddOn):
                     op_res, rect_map = self.helper.recruit_with_rect()
                 else:
                     break
-            # 增加时长
-            self.click((466, 286), 0)
             rarity = op_res[0][2]
-            # ignore 支援机械
             tags_choose = op_res[0][0] if rarity > self.min_rarity else []
             logger.info(f"选择标签: {tags_choose}")
+            # 增加时长
+            if 0 < rarity < 1:
+                self.helper.replay_custom_record('set_3h50m')
+            else:
+                self.click((466, 286), 0)
             if rarity > 1:
                 logger.info(f"{current_slot} 号位置出现 4 星以上干员, 选择标签: {tags_choose}, 跳过此位置.")
                 continue
