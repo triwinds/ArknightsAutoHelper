@@ -36,8 +36,8 @@ def clear_sanity():
     if wd in items_day:
         clear_sanity_by_item()
     elif wd == 0:
-        import start_jiaomie
-        if not start_jiaomie.main():
+        import jiaomie
+        if not jiaomie.main():
             # 剿灭刷完就刷材料
             clear_sanity_by_item()
 
