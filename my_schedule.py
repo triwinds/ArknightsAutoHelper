@@ -31,18 +31,30 @@ def clear_sanity():
     now = datetime.now().astimezone(tz=timezone(timedelta(hours=4)))
     wd = now.weekday()
     logger.info(f'clear_sanity, weekday: {wd}, time: {now}')
-    items_day = {1, 2, 3, 4, 5, 6}
-
-    if wd in items_day:
-        clear_sanity_by_item()
-    elif wd == 0:
+    # items_day = {0, 2, 3, 4, 5, 6}
+    # items_day = {2, 4}
+    red_ticket_day = {0, 3, 5, 6}
+    # Monday = 0, Sunday = 6
+    if wd in red_ticket_day:
+        clear_sanity_by_red_ticket()
+    elif wd == 1:
+        logger.info('clear_sanity_by_jiaomie')
         import jiaomie
         if not jiaomie.main():
             # 剿灭刷完就刷材料
             clear_sanity_by_item()
+    else:
+        clear_sanity_by_item()
+
+
+def clear_sanity_by_red_ticket():
+    logger.info('clear_sanity_by_red_ticket')
+    helper = ArknightsHelper()
+    helper.module_battle('AP-5', 1000)
 
 
 def clear_sanity_by_item():
+    logger.info('clear_sanity_by_item')
     import config
     from addons.activity import ActivityAddOn
     try:

@@ -38,9 +38,14 @@ use_start_sp_stage = config.get('addons/grass_on_aog/use_start_sp_stage', False)
 aog_cache_file = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'aog_cache.json')
 inventory_cache_file = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'inventory_items_cache.json')
 
+proxies = {
+  "http": "http://localhost:21081",
+  "https": "http://localhost:21081",
+}
+
 
 def get_items_from_aog_api():
-    resp = requests.get('https://arkonegraph.herokuapp.com/total/CN')
+    resp = requests.get('https://arkonegraph.herokuapp.com/total/CN', proxies=proxies)
     return resp.json()
 
 

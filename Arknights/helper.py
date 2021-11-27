@@ -308,9 +308,10 @@ class ArknightsHelper(object):
                     logger.debug('当前画面关卡：%s', recoresult['operation'])
                     if c_id is not None:
                         # 如果传入了关卡 ID，检查识别结果
-                        if recoresult['operation'] != c_id:
-                            logger.error('不在关卡界面')
-                            raise StopIteration()
+                        # if recoresult['operation'] != c_id:
+                        #     logger.error('不在关卡界面')
+                        #     raise StopIteration()
+                        pass
                     break
                 else:
                     count_times += 1
