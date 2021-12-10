@@ -7,12 +7,20 @@ from imgreco.imgops import match_template
 from PIL import Image
 import os
 import logging
+from util.richlog import get_logger
+from addons.base import BaseAddOn
 
 
 file_root = os.path.realpath(os.path.dirname(__file__)) + '/'
 reboot_img = Image.open(file_root + 'reboot.png').convert('L')
 start_img = Image.open(file_root + 'start.png').convert('L')
 login_img = Image.open(file_root + 'login.png').convert('L')
+logger = get_logger('restart_mumu')
+
+
+class VoidAddOn(BaseAddOn):
+    def run(self, **kwargs):
+        pass
 
 
 def get_mumu_window():
@@ -49,6 +57,16 @@ def click_window_img(mumu_window, pil_gray_img):
     if p > 0.9:
         click_window_pos(mumu_window, (x, y))
         return True
+    else:
+        addon = VoidAddOn()
+        screen = addon.screenshot()
+        gray_screen = screen.convert('L')
+        (x, y), p = match_template(gray_screen, pil_gray_img)
+        logging.info(f'adb click_window_img: {(x, y), p}')
+        if p > 0.9:
+            # click_window_pos(mumu_window, (x, y))
+            addon.click((x, y))
+            return True
     return False
 
 
@@ -67,6 +85,9 @@ def retry_click_img(window, img, img_name):
         time.sleep(20)
         c += 1
         if c > max_retry:
+            logger.logtext('fail img_name: ' + img_name)
+            logger.logimage(window.capture_as_image())
+            logger.logimage(BaseAddOn().screenshot())
             raise RuntimeError(f'Fail to click [{img_name}].')
         else:
             logging.info(f'retry click [{img_name}]...')
