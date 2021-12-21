@@ -37,7 +37,7 @@ def load_index_info():
     return data['idx2id'], data['id2idx'], data['idx2name'], data['idx2type']
 
 
-def retry_get(url, max_retry=5, timeout=3):
+def retry_get(url, max_retry=5, timeout=30):
     c = 0
     ex = None
     while c < max_retry:

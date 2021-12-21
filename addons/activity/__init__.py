@@ -79,6 +79,13 @@ def check_activity_available(zone_id):
     return activity_info['startTime'] < cur_time < activity_info['endTime']
 
 
+def update_cache():
+    print('更新缓存...')
+    get_zones(True)
+    get_activities(True)
+    get_stage_map(True)
+
+
 class ActivityAddOn(BaseAddOn):
     def run(self, target_stage_code, repeat_times=1000, allow_extra_stage_icons=False):
         target_stage_code = target_stage_code.upper()
@@ -101,6 +108,7 @@ class ActivityAddOn(BaseAddOn):
                     c = input(f'{str(e)}, 是否录制相应操作记录(需要使用 MuMu 模拟器)[y/N]:').strip().lower()
                     if c != 'y':
                         return
+                    update_cache()
                     print('录制到进入活动关卡选择界面即可, 无需点击具体的某个关卡.')
                     print(f'如果需要重新录制, 删除 custom_record 下的 {record_name} 文件夹即可.')
                     print(f'请在点击后等待 {wait_seconds_after_touch} s , 待控制台出现 "继续..." 字样, 再进行下一次点击.')
@@ -118,4 +126,4 @@ class ActivityAddOn(BaseAddOn):
 
 if __name__ == '__main__':
     addon = ActivityAddOn()
-    addon.run('SV-1')
+    addon.run('bi-1')

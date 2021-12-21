@@ -243,6 +243,17 @@ class AutoShiftAddOn(BaseAddOn):
         if test_color([113, 86, 6], cv_screen[-1][-1]):
             self.helper.tap_rect((50 * vw + 14.444 * vh, 90.278 * vh, 50 * vw + 84.861 * vh, 99.167 * vh))
         time.sleep(1)
+        c = 0
+        screen = self.screenshot()
+        cv_screen = cvt2cv(screen)
+        while not test_color([255, 255, 255], cv_screen[1][-1]):
+            logger.info('wait 1s for confirm shift...')
+            time.sleep(1)
+            screen = self.screenshot()
+            cv_screen = cvt2cv(screen)
+            c += 1
+            if c > 15:
+                raise RuntimeError('Fail in confirm shift.')
 
     def tap_back(self):
         logger.info('go back...')
@@ -268,6 +279,7 @@ class AutoShiftAddOn(BaseAddOn):
         return max_val > threshold
 
     def open_room_shift_view(self):
+        logger.info('open shift view')
         screenshot = self.screenshot()
         gray_screen = cvt2cv(screenshot, cv2.COLOR_BGR2GRAY)
         res = cv2.matchTemplate(gray_screen, open_shift_img, cv2.TM_CCOEFF_NORMED)
@@ -283,6 +295,7 @@ class AutoShiftAddOn(BaseAddOn):
         return self._test_img(zoom_test_img)
 
     def open_room(self, room):
+        logger.info(f'open room {room}')
         room_rect = room_rect_map.get(room)
         if not room_rect:
             raise RuntimeError(f'Can not find room: {room}')
@@ -414,4 +427,4 @@ if __name__ == '__main__':
     # AutoShiftAddOn().dump_current_shift(exclude_room={'control_room', 'b105', 'b305', 'b401'})
     # AutoShiftAddOn().apply_shift('saved_shift/shift2_cache.json')
     # print(AutoShiftAddOn().get_all_op_on_screen())
-    AutoShiftAddOn().apply_shift_plan(0)
+    AutoShiftAddOn().run()

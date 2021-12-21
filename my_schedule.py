@@ -36,6 +36,7 @@ def clear_sanity():
     red_ticket_day = {0, 3, 5, 6}
     # Monday = 0, Sunday = 6
     if wd in red_ticket_day:
+        clear_sanity_by_item(True)
         clear_sanity_by_red_ticket()
     elif wd == 1:
         logger.info('clear_sanity_by_jiaomie')
@@ -53,7 +54,7 @@ def clear_sanity_by_red_ticket():
     helper.module_battle('AP-5', 1000)
 
 
-def clear_sanity_by_item():
+def clear_sanity_by_item(only_activity=False):
     logger.info('clear_sanity_by_item')
     import config
     from addons.activity import ActivityAddOn
@@ -65,6 +66,8 @@ def clear_sanity_by_item():
         return
     except Exception as e:
         print(e)
+        if only_activity:
+            return
 
     from addons.grass_on_aog import GrassAddOn
     GrassAddOn().run()
