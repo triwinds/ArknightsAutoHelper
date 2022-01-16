@@ -7,9 +7,13 @@ common_cache_config = {
     'character_table': {
         'type': 'net_json',
         'filename': 'character_table_cache.json',
-        'url': 'https://raw.fastgit.org/Kengxxiao/ArknightsGameData/master/zh_CN/gamedata/excel/character_table.json',
+        'url': 'https://raw.githubusercontent.com/Kengxxiao/ArknightsGameData/master/zh_CN/gamedata/excel/character_table.json',
         'encoding': 'utf-8'
     },
+}
+proxies = {
+  "http": "http://localhost:7890",
+  "https": "http://localhost:7890",
 }
 
 
@@ -19,7 +23,7 @@ def get_cache_path(cache_file_name):
 
 def update_net_cache(cache_file_name, url):
     filepath = get_cache_path(cache_file_name)
-    resp = requests.get(url)
+    resp = requests.get(url, proxies=proxies)
     with open(filepath, 'wb') as f:
         f.write(resp.content)
 
@@ -50,5 +54,5 @@ def load_common_cache(cache_name, force_update=False):
 
 
 def load_game_data(table_name, force_update=False):
-    url = f'https://raw.fastgit.org/Kengxxiao/ArknightsGameData/master/zh_CN/gamedata/excel/{table_name}.json'
+    url = f'https://raw.githubusercontent.com/Kengxxiao/ArknightsGameData/master/zh_CN/gamedata/excel/{table_name}.json'
     return load_net_json_cache(f'{table_name}_cache.json', url, 'utf-8', force_update)

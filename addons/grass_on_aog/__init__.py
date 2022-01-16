@@ -39,8 +39,8 @@ aog_cache_file = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'aog_
 inventory_cache_file = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'inventory_items_cache.json')
 
 proxies = {
-  "http": "http://localhost:21081",
-  "https": "http://localhost:21081",
+  "http": "http://localhost:7890",
+  "https": "http://localhost:7890",
 }
 
 
