@@ -10,6 +10,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 import config
 from imgreco.item import update_net
 from addons.restart_mumu import restart_all
+from addons.auto_chips import AutoChips
 import traceback
 
 
@@ -37,6 +38,7 @@ def clear_sanity():
     # Monday = 0, Sunday = 6
     if wd in red_ticket_day:
         clear_sanity_by_item(True)
+        AutoChips().run()
         clear_sanity_by_red_ticket()
     elif wd == 1:
         logger.info('clear_sanity_by_jiaomie')
@@ -45,6 +47,7 @@ def clear_sanity():
             # 剿灭刷完就刷材料
             clear_sanity_by_item()
     else:
+        AutoChips().run()
         clear_sanity_by_item()
 
 
