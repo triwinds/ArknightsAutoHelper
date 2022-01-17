@@ -38,7 +38,6 @@ def clear_sanity():
     # Monday = 0, Sunday = 6
     if wd in red_ticket_day:
         clear_sanity_by_item(True)
-        AutoChips().run()
         clear_sanity_by_red_ticket()
     elif wd == 1:
         logger.info('clear_sanity_by_jiaomie')
@@ -47,7 +46,6 @@ def clear_sanity():
             # 剿灭刷完就刷材料
             clear_sanity_by_item()
     else:
-        AutoChips().run()
         clear_sanity_by_item()
 
 
@@ -70,8 +68,10 @@ def clear_sanity_by_item(only_activity=False):
     except Exception as e:
         print(e)
         if only_activity:
+            AutoChips().run()
             return
 
+    AutoChips().run()
     from addons.grass_on_aog import GrassAddOn
     GrassAddOn().run()
     # helper = ArknightsHelper()
@@ -98,7 +98,7 @@ def do_works():
         time.sleep(60)
     except Exception as e:
         send_by_tg_bot(config.get('notify/chat_id'), 'arh-fail', traceback.format_exc())
-        raise e
+        print(traceback.format_exc())
 
 
 def recruit():
@@ -110,7 +110,7 @@ def recruit():
 
 def main():
     do_works()
-    scheduler = BlockingScheduler()
+    scheduler = BlockingScheduler(timezone='Asia/Shanghai')
     scheduler.add_job(recruit, 'cron', day_of_week='0,1', hour='19', minute=0)
     scheduler.add_job(restart_all, 'cron', day='*/2', hour=4, minute=5)
     scheduler.add_job(do_works, 'cron', hour='*/4', minute=15)
