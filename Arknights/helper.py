@@ -902,11 +902,13 @@ class ArknightsHelper(object):
         move = -randint(self.viewport[0] // 4, self.viewport[0] // 3)
         self.__swipe_screen(move)
         screenshot = self.adb.screenshot()
+        vw, vh = imgreco.util.get_vwvh(self.viewport)
         while True:
             move = -randint(self.viewport[0] // 4, self.viewport[0] // 3)
             self.__swipe_screen(move)
             screen_items = imgreco.inventory.get_all_item_details_in_screen(screenshot,
-                                                                            only_normal_items=only_normal_items)
+                                                                            only_normal_items=only_normal_items,
+                                                                            fixed_ys=[26.528*vh, 52.917*vh, 79.306*vh])
             screen_item_ids = set([item['itemId'] for item in screen_items])
             screen_items_map = {item['itemId']: item['quantity'] for item in screen_items}
             if last_screen_items == screen_item_ids:

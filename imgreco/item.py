@@ -11,6 +11,7 @@ import requests
 import os
 
 from util.richlog import get_logger
+from util.requests import retry_get
 from . import imgops
 from . import minireco
 from . import resources
@@ -35,18 +36,6 @@ def load_index_info():
     with open(index_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
     return data['idx2id'], data['id2idx'], data['idx2name'], data['idx2type']
-
-
-def retry_get(url, max_retry=5, timeout=30):
-    c = 0
-    ex = None
-    while c < max_retry:
-        try:
-            return requests.get(url, timeout=timeout)
-        except Exception as e:
-            c += 1
-            ex = e
-    raise ex
 
 
 def update_net():

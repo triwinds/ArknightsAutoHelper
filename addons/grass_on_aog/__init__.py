@@ -1,11 +1,11 @@
 from addons.base import BaseAddOn
 from penguin_stats import arkplanner
-import requests
 from datetime import datetime
 import json
 import os
 import config
 from Arknights.helper import logger
+from util.requests import retry_get
 
 
 desc = f"""
@@ -38,14 +38,9 @@ use_start_sp_stage = config.get('addons/grass_on_aog/use_start_sp_stage', False)
 aog_cache_file = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'aog_cache.json')
 inventory_cache_file = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'inventory_items_cache.json')
 
-proxies = {
-  "http": "http://localhost:7890",
-  "https": "http://localhost:7890",
-}
-
 
 def get_items_from_aog_api():
-    resp = requests.get('https://arkonegraph.herokuapp.com/total/CN', proxies=proxies)
+    resp = retry_get('https://arkonegraph.herokuapp.com/total/CN')
     return resp.json()
 
 

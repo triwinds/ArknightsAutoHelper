@@ -3,7 +3,10 @@ import cv2
 from . import item, imgops, util
 from PIL import Image
 from util.richlog import get_logger
+from ppocronnx.predict_system import TextSystem
 
+
+ppocr = TextSystem(unclip_ratio=1.3)
 logger = get_logger(__name__)
 exclude_items = {'32001', 'other', '3401'}
 
@@ -40,7 +43,7 @@ def group_pos(ys):
     return res
 
 
-def get_all_item_img_in_screen(pil_screen, use_group_pos=True):
+def get_all_item_img_in_screen(pil_screen, use_group_pos=True, fixed_ys=None):
     cv_screen = convert_pil_screen(pil_screen)
     gray_screen = cv2.cvtColor(cv_screen, cv2.COLOR_BGR2GRAY)
     dbg_screen = cv_screen.copy()
@@ -51,7 +54,7 @@ def get_all_item_img_in_screen(pil_screen, use_group_pos=True):
         return []
     res = []
     if use_group_pos:
-        center_ys = group_pos(circles[:, 1])
+        center_ys = fixed_ys if fixed_ys else group_pos(circles[:, 1])
         center_xs = group_pos(circles[:, 0])
         for center_x in center_xs:
             if center_x - half_box < 0 or center_x + half_box > img_w:
@@ -102,28 +105,6 @@ def crop_num_img(item_img):
     return item_img[t:b, l:r]
 
 
-def get_quantity2(item_img):
-    from .ocr.cnocr import cn_ocr
-    num_img = crop_num_img(item_img)
-    num_img = cv2.cvtColor(num_img, cv2.COLOR_RGB2GRAY)
-    num_img[num_img < 173] = 0
-    remove_holes(num_img)
-    num_img = cv2.cvtColor(num_img, cv2.COLOR_GRAY2RGB)
-    logger.logimage(convert_to_pil(num_img))
-    cn_ocr.set_cand_alphabet('0123456789万')
-    res = ''.join(cn_ocr.ocr_for_single_line(num_img)).strip()
-    cn_ocr.set_cand_alphabet(None)
-    logger.logtext(f'get_quantity2: {res}')
-    factor = 1
-    num = None
-    if res.endswith('万'):
-        factor = 10000
-        res = res[:-1]
-    if res.isdigit():
-        num = int(float(res)) * factor
-    return num
-
-
 def get_circles(gray_img, min_radius=56, max_radius=68):
     circles = cv2.HoughCircles(gray_img, cv2.HOUGH_GRADIENT, 1, 100, param1=128,
                                param2=30, minRadius=min_radius, maxRadius=max_radius)
@@ -135,7 +116,7 @@ def show_img(cv_img):
     cv2.waitKey()
 
 
-def get_quantity(num_img):
+def get_quantity(num_img, min_score=0.7):
     logger.logimage(num_img)
     x_threshold = int(num_img.height * 0.25) + 1
     numimg = imgops.crop_blackedge2(num_img, 130, x_threshold)
@@ -147,6 +128,8 @@ def get_quantity(num_img):
         cached = item.load_data()
         numtext, score = cached.num_recognizer.recognize2(numimg, subset='0123456789万')
         logger.logtext('quantity: %s, minscore: %f' % (numtext, score))
+        if min_score > score:
+            return None
         quantity = int(numtext) if numtext.isdigit() else None
         return quantity
 
@@ -155,6 +138,17 @@ def get_quantity(num_img):
 
 def convert_to_pil(cv_img):
     return Image.fromarray(cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB))
+
+
+def get_quantity_ppocr(ori_img):
+    img_h, img_w = ori_img.shape[:2]
+    half_img = ori_img[int(img_h/2):img_h, 0:img_w]
+    res = ppocr.detect_and_ocr(half_img, 0.8)
+    logger.logtext(f'ppocr: {res}')
+    if res:
+        numtext = res[0].ocr_text
+        quantity = int(numtext) if numtext.isdigit() else None
+        return quantity
 
 
 def get_all_item_in_screen(screen):
@@ -166,7 +160,7 @@ def get_all_item_in_screen(screen):
         logger.logtext('item_id: %s, item_name: %s, prob: %s, type: %s' % (item_id, item_name, prob, item_type))
         if item_id in exclude_items or item_type == 'ACTIVITY_ITEM':
             continue
-        quantity = get_quantity(item_img['num_img'])
+        quantity = get_quantity(item_img['num_img'], 0)
         item_count_map[item_id] = quantity
         # print(item_id, quantity)
         # show_img(item_img['item_img'])
@@ -174,12 +168,13 @@ def get_all_item_in_screen(screen):
     return item_count_map
 
 
-def get_all_item_details_in_screen(screen, exclude_item_ids=None, exclude_item_types=None, only_normal_items=True):
+def get_all_item_details_in_screen(screen, exclude_item_ids=None, exclude_item_types=None, only_normal_items=True,
+                                   fixed_ys=None):
     if exclude_item_ids is None:
         exclude_item_ids = exclude_items
     if exclude_item_types is None:
         exclude_item_types = {'ACTIVITY_ITEM'}
-    imgs = get_all_item_img_in_screen(screen)
+    imgs = get_all_item_img_in_screen(screen, fixed_ys=fixed_ys)
     res = []
     for item_img in imgs:
         logger.logimage(convert_to_pil(item_img['item_img']))
@@ -189,8 +184,9 @@ def get_all_item_details_in_screen(screen, exclude_item_ids=None, exclude_item_t
             continue
         if only_normal_items and (not item_id.isdigit() or len(item_id) < 5 or item_type != 'MATERIAL'):
             continue
-        quantity = get_quantity(item_img['num_img'])
-        # get_quantity2(item_img['item_img'])
+        quantity = get_quantity(item_img['num_img'], 0.7)
+        if not quantity:
+            quantity = get_quantity_ppocr(item_img['item_img'])
         res.append({'itemId': item_id, 'itemName': item_name, 'itemType': item_type,
                     'quantity': quantity, 'itemPos': item_img['item_pos']})
     logger.logtext('res: %s' % res)

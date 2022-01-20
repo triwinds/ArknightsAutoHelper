@@ -61,9 +61,10 @@ class AutoChips(BaseAddOn):
         my_chips = filter_today_chips(my_chips)
         if my_chips[0]['count'] < self.minimum_storage:
             my_chips = self.load_chips(True)
-        if my_chips[0]['count'] >= self.minimum_storage:
-            logger.info('All chips are exceed minimum storage, exit.')
-            return
+            my_chips = filter_today_chips(my_chips)
+            if my_chips[0]['count'] >= self.minimum_storage:
+                logger.info('All chips are exceed minimum storage, exit.')
+                return
         chip = my_chips[0]
         item_stage_map = get_item_stage_map()
         stage_code = item_stage_map[chip['itemId']][0]
