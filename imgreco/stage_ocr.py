@@ -39,7 +39,7 @@ def predict_cv(img):
     char_imgs = crop_char_img(img)
     if not char_imgs:
         return ''
-    roi_list = [np.expand_dims(resize_char(x), 2) for x in char_imgs]
+    roi_list = [np.expand_dims(~resize_char(x), 2) for x in char_imgs]
     blob = cv2.dnn.blobFromImages(roi_list)
     net.setInput(blob)
     scores = net.forward()
@@ -62,6 +62,8 @@ def resize_char(img):
     img2 = np.zeros((16, 16)).astype(np.uint8)
     img = cv2.resize(img, (w, h))
     img2[0:h, 0:w] = ~img
+    # cv2.imshow('test', img2)
+    # cv2.waitKey()
     return img2
 
 
@@ -76,10 +78,17 @@ def crop_char_img(img):
     has_black = False
     last_x = None
     res = []
+    noise_h = 3 if h > 25 else 2
     for x in range(0, w):
-        for y in range(0, h - 1):
+        for y in range(0, h - noise_h + 1):
             has_black = False
-            if img[y][x] < 127 and img[y+1][x] < 127:
+            flag = False
+            if img[y][x] < 127:
+                flag = True
+                for i in range(noise_h):
+                    if img[y+i][x] > 127:
+                        flag = False
+            if flag:
                 has_black = True
                 if not last_x:
                     last_x = x

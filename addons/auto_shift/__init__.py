@@ -74,12 +74,18 @@ def crop_screen_by_rect(cv_screen, rect):
     return cv_screen[int(rect[1]):int(rect[3]), int(rect[0]):int(rect[2])]
 
 
-def ocr_tag(tag, white_threshold=150):
+def ocr_tag(tag, white_threshold=130):
     # show_img(tag)
+    # ori_tag = tag.copy()
     tag = cv2.cvtColor(tag, cv2.COLOR_RGB2GRAY)
     tag[tag < white_threshold] = 0
     tag = cv2.cvtColor(tag, cv2.COLOR_GRAY2RGB)
+    # p = np.where(tag > 130)
+    # l = max(min(p[1])-2, 0)
+    # tag = ori_tag[min(p[0]) - 2: max(p[0]) + 2, l: max(p[1]) + 2]
+    # tag = cv2.resize(tag, (0, 0), fx=2, fy=2)
     # show_img(tag)
+    # print(ppocr.ocr_lines([tag]))
     return ocr_and_correct(tag, cn_op_names, model_name='densenet-lite-fc')
 
 
@@ -115,7 +121,7 @@ def process_circle(cv_screen, dbg_screen, res, x, y, r):
     if x + 105 > w:
         return
     # print(x, y, r)
-    name_tag = cv_screen[y + 6:y + 35, x + 10:x + 105]
+    name_tag = cv_screen[y + 6:y + 35, x + 12:x + 105]
     op_name = ocr_tag(name_tag, 130)
     tag_color = (0, 0, 255)
     if op_name in cn_op_names:
@@ -427,4 +433,5 @@ if __name__ == '__main__':
     # AutoShiftAddOn().dump_current_shift(exclude_room={'control_room', 'b105', 'b305', 'b401'})
     # AutoShiftAddOn().apply_shift('saved_shift/shift2_cache.json')
     # print(AutoShiftAddOn().get_all_op_on_screen())
-    AutoShiftAddOn().run()
+    # AutoShiftAddOn().run()
+    AutoShiftAddOn().get_all_op_on_screen()

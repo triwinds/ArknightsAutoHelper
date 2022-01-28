@@ -819,7 +819,7 @@ class ArknightsHelper(object):
         self.__wait(TINY_WAIT)
         if path[0] == 'main':
             vw, vh = imgreco.util.get_vwvh(self.viewport)
-            self.tap_rect((14.316*vw, 89.815*vh, 28.462*vw, 99.815*vh))
+            self.tap_rect((14.844*vw, 89.861*vh, 21.797*vw, 98.056*vh))
             self.find_and_tap_episode_by_ocr(int(path[1][2:]))
             self.find_and_tap_stage_by_ocr(path[1], path[2])
         elif path[0] == 'material' or path[0] == 'soc':

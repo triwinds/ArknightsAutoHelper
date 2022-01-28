@@ -14,9 +14,12 @@ from Arknights.helper import logger
 from addons.base import BaseAddOn
 from addons.common_cache import load_game_data
 from imgreco.ocr.cnocr import ocr_for_single_line, ocr_and_correct
+from ppocronnx.predict_system import TextSystem
+
 
 character_cache_file = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'character_cache.json')
 screenshot_root = config.SCREEN_SHOOT_SAVE_PATH
+ppocr = TextSystem()
 
 
 @lru_cache(1)
@@ -98,23 +101,48 @@ def crop_to_white(tag_img):
     return tag_img
 
 
+def get_name3(pil_screen):
+    vw, vh = imgreco.util.get_vwvh(pil_screen.size)
+    rect = tuple(map(int, (100 * vw - 24.722 * vh, 71.111 * vh, 100 * vw - 1.806 * vh, 73.889 * vh)))
+    tag_img = cv2.cvtColor(np.asarray(pil_screen.crop(rect)), cv2.COLOR_BGR2RGB)
+    # show_img(tag_img)
+    tag_img = crop_to_white(tag_img)
+    # tag_img = cv2.resize(tag_img, (0, 0), fx=2, fy=2, interpolation=cv2.INTER_LINEAR)
+    # show_img(tag_img)
+    res = ppocr.ocr_lines([tag_img])[0]
+    print(res)
+    res = res[0]
+    logger.debug('get_name3: %s' % res)
+    if '的信物' in res:
+        return res[0:res.index('的信物')]
+    return None
+
+
 def test():
     from PIL import Image
     correct = 0
+    correct2 = 0
     file_list = os.listdir('../../screenshot/recruit')
+    diff_list = []
     for filename in file_list:
         screen = Image.open(f'../../screenshot/recruit/{filename}')
         cv_screen = cv2.cvtColor(np.asarray(screen), cv2.COLOR_BGR2RGB)
         print(filename)
         real_name = get_name(screen)
         test_name = get_name2(cv_screen)
-        print(real_name, test_name)
+        ppocr_name = get_name3(screen)
+        print(real_name, test_name, ppocr_name)
         if real_name == test_name:
             correct += 1
             print('==============')
         else:
             print('--------------')
+        correct2 += 1 if real_name == ppocr_name else 0
+        if real_name != ppocr_name:
+            diff_list.append(f'{filename}---{ppocr_name}')
     print(f'{correct}/{len(file_list)}, {correct/len(file_list)}')
+    print(f'{correct2}/{len(file_list)}, {correct2 / len(file_list)}')
+    print(diff_list)
 
 
 class AutoRecruitAddOn(BaseAddOn):
@@ -225,5 +253,5 @@ class AutoRecruitAddOn(BaseAddOn):
 
 if __name__ == '__main__':
     # AutoRecruitAddOn().hire_all()
-    AutoRecruitAddOn().auto_recruit(4)
-    # test()
+    # AutoRecruitAddOn().auto_recruit(4)
+    test()

@@ -11,6 +11,8 @@ from . import item
 from . import minireco
 from . import resources
 from . import util
+from imgreco import common
+from imgreco.stage_ocr import do_tag_ocr
 
 logger = get_logger(__name__)
 
@@ -220,12 +222,10 @@ def recognize_main(im, learn_unrecognized_item):
 
     operation_id = lower.crop((0, 4.444 * vh, 23.611 * vh, 11.388 * vh)).convert('L')
     # logger.logimage(operation_id)
-    operation_id = imgops.enhance_contrast(imgops.crop_blackedge(operation_id), 80, 220)
+    operation_id = imgops.enhance_contrast(operation_id, 80, 220)
     logger.logimage(operation_id)
-    operation_id_str = reco_novecento_bold.recognize(operation_id).upper()
-    fixup, operation_id_str = minireco.fix_stage_name(operation_id_str)
-    if fixup:
-        logger.logtext('fixed to ' + operation_id_str)
+    operation_id_str = do_tag_ocr(~np.asarray(operation_id))
+    logger.logtext('operation_id_str ' + operation_id_str)
     # operation_name = lower.crop((0, 14.074*vh, 23.611*vh, 20*vh)).convert('L')
     # operation_name = imgops.enhance_contrast(imgops.crop_blackedge(operation_name))
     # logger.logimage(operation_name)
