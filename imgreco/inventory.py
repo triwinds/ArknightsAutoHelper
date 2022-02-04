@@ -6,7 +6,7 @@ from util.richlog import get_logger
 from ppocronnx.predict_system import TextSystem
 
 
-ppocr = TextSystem(unclip_ratio=1.3)
+ppocr = TextSystem(unclip_ratio=2)
 logger = get_logger(__name__)
 exclude_items = {'32001', 'other', '3401'}
 
@@ -142,8 +142,9 @@ def convert_to_pil(cv_img):
 
 def get_quantity_ppocr(ori_img):
     img_h, img_w = ori_img.shape[:2]
-    half_img = ori_img[int(img_h/2):img_h, 0:img_w]
+    half_img = ori_img[int(img_h*0.65):img_h, 0:img_w]
     res = ppocr.detect_and_ocr(half_img, 0.8)
+    # logger.logimage(convert_to_pil(half_img))
     logger.logtext(f'ppocr: {res}')
     if res:
         numtext = res[0].ocr_text
