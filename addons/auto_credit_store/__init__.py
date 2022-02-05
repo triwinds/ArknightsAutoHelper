@@ -4,7 +4,7 @@ from imgreco import inventory
 import cv2
 import numpy as np
 import imgreco
-from imgreco.ocr.cnocr import cn_ocr, do_ocr, ocr_for_single_line
+from imgreco.ocr.ppocr import do_ocr, ocr_for_single_line
 from util.richlog import get_logger
 from logging import DEBUG, INFO, WARN, ERROR
 from addons.base import BaseAddOn
@@ -31,7 +31,7 @@ def get_credit_price(cv_screen, item_pos, ratio):
     price_img = cv2.cvtColor(price_img, cv2.COLOR_RGB2GRAY)
     price_img[price_img < 180] = 0
     price_img = cv2.cvtColor(price_img, cv2.COLOR_GRAY2RGB)
-    res = int(do_ocr(price_img, '0123456789'))
+    res = int(ocr_for_single_line(price_img, '0123456789'))
     return res
 
 

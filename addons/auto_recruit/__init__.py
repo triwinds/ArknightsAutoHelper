@@ -13,7 +13,7 @@ import imgreco
 from Arknights.helper import logger
 from addons.base import BaseAddOn
 from addons.common_cache import load_game_data
-from imgreco.ocr.cnocr import ocr_for_single_line, ocr_and_correct
+from imgreco.ocr.ppocr import ocr_for_single_line, ocr_and_correct
 from ppocronnx.predict_system import TextSystem
 
 
@@ -39,7 +39,8 @@ def pil2cv(pil_img):
 
 
 def get_ticket(screenshot):
-    item = ''.join(ocr_for_single_line(254-screenshot[661:684, 513:586], cand_alphabet=NUMBERS))
+    item = ''.join(ocr_for_single_line(254-screenshot[661:684, 513:586],
+                                       cand_alphabet=string.digits + string.punctuation))
     item = re.sub(r'[^0-9]', '', item)[:-1]
     return item
 
@@ -254,4 +255,5 @@ class AutoRecruitAddOn(BaseAddOn):
 if __name__ == '__main__':
     # AutoRecruitAddOn().hire_all()
     # AutoRecruitAddOn().auto_recruit(4)
-    test()
+    AutoRecruitAddOn().clear_refresh()
+    # test()

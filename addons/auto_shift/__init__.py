@@ -6,12 +6,13 @@ import re
 from Arknights.helper import logger
 from addons.base import BaseAddOn
 from addons.common_cache import load_game_data
-from imgreco.ocr.cnocr import ocr_for_single_line, ocr_and_correct
+from imgreco.ocr.ppocr import ocr_for_single_line, ocr_and_correct, search_in_list
 from imgreco import util
 
 import cv2
 import os
 import numpy as np
+from ppocronnx.predict_system import TextSystem
 
 
 def open_img(name, mode=cv2.IMREAD_GRAYSCALE):
@@ -29,7 +30,43 @@ character_table = load_game_data('character_table')
 cn_op_names = set()
 for cid, character_info in character_table.items():
     cn_op_names.add(character_info['name'])
-
+ppocr = TextSystem(use_angle_cls=False, unclip_ratio=4, box_thresh=0.3)
+cs = 'E'
+for name in cn_op_names:
+    for c in name:
+        if c not in cs:
+            cs += c
+ppocr.set_char_whitelist(cs)
+ppocr_fix_map = {
+    'e': '山',
+    '早': '霜叶',
+    '梅': '梅',
+    '苗': '梅',
+    '灰': '灰烬',
+    '灰烟': '灰烬',
+    '槐影': '傀影',
+    '影': '傀影',
+    '使影': '傀影',
+    'w': 'W',
+    '子': '孑',
+    '芬': '芬',
+    '劳': '芬',
+    '测': '黑',
+    '调': '黑',
+    '黑': '黑',
+    '野熊': '野鬃',
+    'thrm-ex': 'THRM-EX',
+    '动': '砾',
+    '潮': '砾',
+    '刻': '宴',
+    '烟': '宴',
+    '宴': '宴',
+    '石': '燧石',
+    '特': '雪雉',
+    '赤黑大': '赫默',
+    '赫黑大': '赫默',
+    '赤赤黑大': '赫默',
+}
 room_rect_map = {
     'control_room': (649, 69, 1057, 247),
     '1F02': (1133, 162, 1267, 231),
@@ -79,14 +116,43 @@ def ocr_tag(tag, white_threshold=130):
     # ori_tag = tag.copy()
     tag = cv2.cvtColor(tag, cv2.COLOR_RGB2GRAY)
     tag[tag < white_threshold] = 0
+    tag = ~crop_image_only_outside(tag, tag, 128, 4)
     tag = cv2.cvtColor(tag, cv2.COLOR_GRAY2RGB)
-    # p = np.where(tag > 130)
-    # l = max(min(p[1])-2, 0)
-    # tag = ori_tag[min(p[0]) - 2: max(p[0]) + 2, l: max(p[1]) + 2]
-    # tag = cv2.resize(tag, (0, 0), fx=2, fy=2)
     # show_img(tag)
-    # print(ppocr.ocr_lines([tag]))
-    return ocr_and_correct(tag, cn_op_names, model_name='densenet-lite-fc')
+    ppocr_name = ppocr_tag(tag)
+    # cnocr_name = ocr_and_correct(tag, cn_op_names, model_name='densenet-lite-fc')
+    # if ppocr_name != cnocr_name:
+    #     print(f"ppocr_name: {ppocr_name}, cnocr_name: {cnocr_name}")
+    return ppocr_name
+
+
+def crop_image_only_outside(gray_img, raw_img, threshold=128, padding=3):
+    mask = gray_img > threshold
+    m, n = gray_img.shape
+    mask0, mask1 = mask.any(0), mask.any(1)
+    col_start, col_end = mask0.argmax(), n - mask0[::-1].argmax()
+    row_start, row_end = mask1.argmax(), m - mask1[::-1].argmax()
+    return raw_img[max(0, row_start - padding):min(m, row_end + padding),
+           max(0, col_start - padding):min(n, col_end + padding)]
+
+
+def ppocr_tag(tag):
+    # show_img(tag)
+    res = ppocr.ocr_single_line(tag)
+    logger.info(f'raw ppocr: {res}')
+    if not res:
+        return None
+    if res[0] == '叶':
+        return '霜叶' if tag.shape[1] > 40 else '吽'
+    if res[0] == '陈':
+        return '陈' if res[1] > 0.5 else '砾'
+    if res[1] < 0.5 and res[0] not in ppocr_fix_map:
+        return None
+    name = res[0].lower()
+    name = ppocr_fix_map.get(name, name)
+    res = search_in_list(cn_op_names, name, 0.5)
+    if res:
+        return res[0]
 
 
 def cvt2cv(pil_img, color=cv2.COLOR_BGR2RGB):
