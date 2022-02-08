@@ -54,7 +54,7 @@ def crop_char_img(img):
     has_white = False
     last_x = None
     res = []
-    noise_size = 3 if h > 25 else 2
+    noise_size = 3 if h > 40 else 2
     for x in range(0, w):
         for y in range(0, h - noise_size + 1):
             has_white = False

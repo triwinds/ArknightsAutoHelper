@@ -24,7 +24,7 @@ def check_supported():
 class PaddleOcr(OcrEngine):
     def recognize(self, image, ppi=70, hints=None, **kwargs):
         cv_img = cv2.cvtColor(np.asarray(image), cv2.COLOR_GRAY2RGB)
-        if OcrHint.SINGLE_LINE in hints:
+        if hints is not None and OcrHint.SINGLE_LINE in hints:
             res = ocr.ocr_single_line(cv_img)
             if res:
                 return OcrResult([OcrLine([OcrWord(Rect(0, 0), w) for w in res[0].strip()])])

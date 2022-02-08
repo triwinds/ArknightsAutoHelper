@@ -118,7 +118,7 @@ class GrassAddOn(BaseAddOn):
         return self.update_inventory()
 
     def update_inventory(self):
-        data = self.helper.get_inventory_items(True)
+        data = self.helper.get_inventory_items(True, False)
         data['cacheTime'] = datetime.now().strftime(cache_key)
         with open(inventory_cache_file, 'w') as f:
             json.dump(data, f)

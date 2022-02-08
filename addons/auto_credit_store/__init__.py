@@ -8,6 +8,7 @@ from imgreco.ocr.ppocr import do_ocr, ocr_for_single_line
 from util.richlog import get_logger
 from logging import DEBUG, INFO, WARN, ERROR
 from addons.base import BaseAddOn
+from imgreco.stage_ocr import do_tag_ocr
 
 
 rich_logger = get_logger(__name__)
@@ -29,9 +30,9 @@ def get_credit_price(cv_screen, item_pos, ratio):
     y = y + int(76 * ratio)
     price_img = cv_screen[y:y + int(30 * ratio), x:x + int(120 * ratio)]
     price_img = cv2.cvtColor(price_img, cv2.COLOR_RGB2GRAY)
-    price_img[price_img < 180] = 0
-    price_img = cv2.cvtColor(price_img, cv2.COLOR_GRAY2RGB)
-    res = int(ocr_for_single_line(price_img, '0123456789'))
+    price_img = cv2.threshold(price_img, 180, 255, cv2.THRESH_BINARY)[1]
+    # show_img(price_img)
+    res = do_tag_ocr(price_img)
     return res
 
 
@@ -46,7 +47,7 @@ def get_total_credit(pil_screen):
     credit_img = crop_image_only_outside(credit_img, raw_credit_img, padding=6)
     # credit_img = cv2.cvtColor(credit_img, cv2.COLOR_GRAY2RGB)
     # show_img(credit_img)
-    s = ocr_for_single_line(credit_img).upper().replace('S', '5').replace('O', '0')
+    s = ocr_for_single_line(credit_img).upper().replace('S', '5').replace('D', '0')
     return int(s)
 
 
@@ -108,7 +109,7 @@ def crop_image_only_outside(gray_img, raw_img, threshold=128, padding=3):
 
 class AutoCreditStoreAddOn(BaseAddOn):
     def run(self, **kwargs):
-        self.helper.replay_custom_record('goto_credit_store')
+        # self.helper.replay_custom_record('goto_credit_store')
         screen = self.helper.adb.screenshot()
         rich_logger.logimage(screen)
         total_credit = get_total_credit(screen)
