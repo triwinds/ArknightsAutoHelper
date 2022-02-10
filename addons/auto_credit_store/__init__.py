@@ -1,14 +1,14 @@
 import time
-from Arknights.helper import ArknightsHelper, logger
+from Arknights.helper import logger
 from imgreco import inventory
 import cv2
 import numpy as np
 import imgreco
-from imgreco.ocr.ppocr import do_ocr, ocr_for_single_line
 from util.richlog import get_logger
-from logging import DEBUG, INFO, WARN, ERROR
+from logging import DEBUG, INFO
 from addons.base import BaseAddOn
 from imgreco.stage_ocr import do_tag_ocr
+from imgreco.common import convert_to_pil
 
 
 rich_logger = get_logger(__name__)
@@ -31,46 +31,43 @@ def get_credit_price(cv_screen, item_pos, ratio):
     price_img = cv_screen[y:y + int(30 * ratio), x:x + int(120 * ratio)]
     price_img = cv2.cvtColor(price_img, cv2.COLOR_RGB2GRAY)
     price_img = cv2.threshold(price_img, 180, 255, cv2.THRESH_BINARY)[1]
+    cv2.rectangle(cv_screen, (x, y), (x + int(120 * ratio), y + int(30 * ratio)), (0, 255, 0))
     # show_img(price_img)
     res = do_tag_ocr(price_img)
-    return res
+    return int(res)
 
 
 def get_total_credit(pil_screen):
     vw, vh = imgreco.util.get_vwvh(pil_screen.size)
     rect = tuple(map(int, (100*vw-20.139*vh, 3.333*vh, 100*vw-2.361*vh, 7.500*vh)))
     credit_img = cv2.cvtColor(np.asarray(pil_screen.crop(rect)), cv2.COLOR_BGR2RGB)
-    raw_credit_img = credit_img.copy()
     credit_img = cv2.cvtColor(credit_img, cv2.COLOR_RGB2GRAY)
-    credit_img[credit_img < 140] = 0
-    # credit_img = cv2.resize(credit_img, (0, 0), fx=1.5, fy=1.5)
-    credit_img = crop_image_only_outside(credit_img, raw_credit_img, padding=6)
-    # credit_img = cv2.cvtColor(credit_img, cv2.COLOR_GRAY2RGB)
-    # show_img(credit_img)
-    s = ocr_for_single_line(credit_img).upper().replace('S', '5').replace('D', '0')
-    return int(s)
+    credit_img = cv2.threshold(credit_img, 180, 255, cv2.THRESH_BINARY)[1]
+    return int(do_tag_ocr(credit_img, 1))
 
 
 def get_value(item_id: str, item_name: str, item_type: str, quantity: int):
+    # 10 理智 = 100 pt
+    # https://penguin-stats.io/result/item
     if item_name == '招聘许可':
-        return 350
+        return 500
     if item_name.startswith('技巧概要·卷'):
-        level = int(item_name[6:])
-        return level * 100
+        level = int(item_name[6:]) - 1
+        return (3 ** level) * 10 * quantity
     if item_type == 'MATERIAL' and item_id.isdigit() and len(item_id) == 5:
         if item_name in {'装置', '异铁', '酮凝集'}:
-            return 300
+            return 400
         level = int(item_id[4:])
-        return level * 100 - 50
+        return level * 100 - 30
     if item_name == '龙门币':
         if quantity == 3600:
-            return 200
-        return 150
+            return 150
+        return 75
     if item_name == '赤金':
-        return 200
+        return 150
     if item_type == 'CARD_EXP':
-        level = int(item_id[3:])
-        return level * 100
+        level = int(item_id[3:]) - 1
+        return (2 ** level) * 18 * quantity
     return 1
 
 
@@ -107,35 +104,43 @@ def crop_image_only_outside(gray_img, raw_img, threshold=128, padding=3):
     return raw_img[row_start - padding:row_end + padding, col_start - padding:col_end + padding]
 
 
+def calc_items(screen):
+    rich_logger.logimage(screen)
+    total_credit = get_total_credit(screen)
+    log_text(f'total_credit: {total_credit}')
+    infos = inventory.get_all_item_details_in_screen(screen, exclude_item_ids={'other'},
+                                                     only_normal_items=False)
+    cv_screen = cv2.cvtColor(np.asarray(screen), cv2.COLOR_BGR2RGB)
+    h, w = cv_screen.shape[:2]
+    ratio = h / 720
+    values, prices = [0], [0]
+    log_text(f"[itemId-itemName]: price/item_value", DEBUG)
+    for info in infos:
+        item_value = get_value(info['itemId'], info['itemName'], info['itemType'], info['quantity'])
+        price = get_credit_price(cv_screen, info['itemPos'], ratio)
+        cv2.circle(cv_screen, info['itemPos'], 4, (255, 0, 0), -1)
+        log_text(f"[{info['itemId']}-{info['itemName']}]: {price}/{item_value}", DEBUG)
+        values.append(item_value)
+        prices.append(price)
+    rich_logger.logimage(convert_to_pil(cv_screen))
+    solve_items = solve(total_credit, values, prices)[1:]
+    picked_items = []
+    for i in range(len(solve_items)):
+        if solve_items[i] == 1:
+            picked_items.append(infos[i])
+    if not picked_items:
+        log_text('信用点不足以购买任何商品.')
+        return
+    picked_names = [picked_item['itemName'] for picked_item in picked_items]
+    log_text(f"picked items: {', '.join(picked_names)}")
+    return picked_items
+
+
 class AutoCreditStoreAddOn(BaseAddOn):
     def run(self, **kwargs):
-        # self.helper.replay_custom_record('goto_credit_store')
+        self.helper.replay_custom_record('goto_credit_store')
         screen = self.helper.adb.screenshot()
-        rich_logger.logimage(screen)
-        total_credit = get_total_credit(screen)
-        log_text(f'total_credit: {total_credit}')
-        infos = inventory.get_all_item_details_in_screen(screen, exclude_item_ids={'other'},
-                                                         only_normal_items=False)
-        cv_screen = cv2.cvtColor(np.asarray(screen), cv2.COLOR_BGR2RGB)
-        h, w = cv_screen.shape[:2]
-        ratio = h / 720
-        values, prices = [0], [0]
-        for info in infos:
-            item_value = get_value(info['itemId'], info['itemName'], info['itemType'], info['quantity'])
-            price = get_credit_price(cv_screen, info['itemPos'], ratio)
-            log_text(f"{info['itemId']} - {info['itemName']}: {item_value} - {price}", DEBUG)
-            values.append(item_value)
-            prices.append(price)
-        solve_items = solve(total_credit, values, prices)[1:]
-        picked_items = []
-        for i in range(len(solve_items)):
-            if solve_items[i] == 1:
-                picked_items.append(infos[i])
-        if not picked_items:
-            log_text('信用点不足以购买任何商品.')
-            return
-        picked_names = [picked_item['itemName'] for picked_item in picked_items]
-        log_text(f"picked items: {', '.join(picked_names)}")
+        picked_items = calc_items(screen)
         for picked_item in picked_items:
             log_text(f'buy item: {picked_item}')
             self.click(picked_item['itemPos'])
@@ -143,7 +148,10 @@ class AutoCreditStoreAddOn(BaseAddOn):
 
 
 if __name__ == '__main__':
-    AutoCreditStoreAddOn().run()
+    # AutoCreditStoreAddOn().run()
     # print(get_total_credit(AutoCreditStoreAddOn().screenshot()))
-    # from PIL import Image
-    # print(get_total_credit(Image.open('../../screenshots/test58.png')))
+    from PIL import Image
+    # print(get_total_credit(Image.open('../../screenshot/test/img.png')))
+    # print(get_total_credit(Image.open('../../screenshot/test/img_1.png')))
+    # print(get_total_credit(Image.open('../../screenshot/test/img_2.png')))
+    print(calc_items(Image.open('../../screenshot/test/img_2.png')))

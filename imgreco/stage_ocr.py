@@ -20,9 +20,9 @@ def _load_onnx_model():
         return net
 
 
-def predict_cv(img):
+def predict_cv(img, noise_size=None):
     net = _load_onnx_model()
-    char_imgs = crop_char_img(img)
+    char_imgs = crop_char_img(img, noise_size)
     if not char_imgs:
         return ''
     roi_list = [np.expand_dims(resize_char(x), 2) for x in char_imgs]
@@ -49,12 +49,13 @@ def resize_char(img):
     return img2
 
 
-def crop_char_img(img):
+def crop_char_img(img, noise_size=None):
     h, w = img.shape[:2]
     has_white = False
     last_x = None
     res = []
-    noise_size = 3 if h > 40 else 2
+    if noise_size is None:
+        noise_size = 3 if h > 40 else 2
     for x in range(0, w):
         for y in range(0, h - noise_size + 1):
             has_white = False
@@ -70,7 +71,7 @@ def crop_char_img(img):
                     last_x = x
                 break
         if not has_white and last_x:
-            if x - last_x >= noise_size:
+            if x - last_x >= noise_size // 2:
                 min_y = None
                 max_y = None
                 for y1 in range(0, h):
@@ -84,6 +85,8 @@ def crop_char_img(img):
                     if not has_white and min_y is not None and max_y is None:
                         max_y = y1
                         break
+                # cv2.imshow('test', img[min_y:max_y, last_x:x])
+                # cv2.waitKey()
                 res.append(img[min_y:max_y, last_x:x])
             last_x = None
     return res
@@ -159,7 +162,7 @@ def recognize_stage_tags(pil_screen, template, ccoeff_threshold=0.75):
             if tag is None:
                 continue
             remove_holes(tag)
-            tag_str = do_tag_ocr(tag)
+            tag_str = do_tag_ocr(tag, 3)
             if len(tag_str) < 3:
                 if dbg_screen is None:
                     dbg_screen = screen.copy()
@@ -174,15 +177,15 @@ def recognize_stage_tags(pil_screen, template, ccoeff_threshold=0.75):
     return res
 
 
-def do_tag_ocr(img):
+def do_tag_ocr(img, noise_size=None):
     logger.logimage(common.convert_to_pil(img))
-    res = do_tag_ocr_dnn(img)
+    res = do_tag_ocr_dnn(img, noise_size)
     logger.logtext('res: %s' % res)
     return res
 
 
-def do_tag_ocr_dnn(img):
-    return predict_cv(img)
+def do_tag_ocr_dnn(img, noise_size=None):
+    return predict_cv(img, noise_size)
 
 
 def do_img_ocr(pil_img):

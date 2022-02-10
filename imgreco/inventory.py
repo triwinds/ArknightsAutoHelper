@@ -6,9 +6,10 @@ from util.richlog import get_logger
 from ppocronnx.predict_system import TextSystem
 
 
-ppocr = TextSystem(unclip_ratio=2)
 logger = get_logger(__name__)
 exclude_items = {'32001', 'other', '3401'}
+ppocr = TextSystem(unclip_ratio=1.4, box_thresh=0.6, use_angle_cls=False)
+ppocr.set_char_whitelist('.0123456789万')
 
 # circle size 128x128
 item_circle_radius = 64
@@ -88,7 +89,7 @@ def get_item_img(pil_screen, cv_screen, dbg_screen, center_x, center_y):
     numimg = imgops.scalecrop(original_item_img, 0.39, 0.705, 0.82, 0.85).convert('L')
     cv2.rectangle(dbg_screen, (x, y), (x + itemreco_box_size, y + itemreco_box_size), (255, 0, 0), 2)
     return {'item_img': cv_item_img, 'num_img': numimg,
-            'item_pos': (int((x + itemreco_box_size // 2)*ratio), int((y + itemreco_box_size // 2)*ratio))}
+            'item_pos': (int((x + itemreco_box_size // 2)/ratio), int((y + itemreco_box_size // 2)/ratio))}
 
 
 def remove_holes(img):
@@ -143,30 +144,14 @@ def convert_to_pil(cv_img):
 def get_quantity_ppocr(ori_img):
     img_h, img_w = ori_img.shape[:2]
     half_img = ori_img[int(img_h*0.65):img_h, 0:img_w]
-    res = ppocr.detect_and_ocr(half_img, 0.8)
-    # logger.logimage(convert_to_pil(half_img))
+    res = ppocr.detect_and_ocr(half_img, 0.05)
+    res = sorted(res, key=lambda x: x.score, reverse=True)
     logger.logtext(f'ppocr: {res}')
     if res:
-        numtext = res[0].ocr_text
-        quantity = int(numtext) if numtext.isdigit() else None
-        return quantity
-
-
-def get_all_item_in_screen(screen):
-    imgs = get_all_item_img_in_screen(screen)
-    item_count_map = {}
-    for item_img in imgs:
-        logger.logimage(convert_to_pil(item_img['item_img']))
-        prob, item_id, item_name, item_type = item.get_item_id(item_img['item_img'])
-        logger.logtext('item_id: %s, item_name: %s, prob: %s, type: %s' % (item_id, item_name, prob, item_type))
-        if item_id in exclude_items or item_type == 'ACTIVITY_ITEM':
-            continue
-        quantity = get_quantity(item_img['num_img'], 0)
-        item_count_map[item_id] = quantity
-        # print(item_id, quantity)
-        # show_img(item_img['item_img'])
-    logger.logtext('item_count_map: %s' % item_count_map)
-    return item_count_map
+        for ocr_res in res:
+            numtext = ocr_res.ocr_text
+            if numtext.isdigit():
+                return int(numtext)
 
 
 def get_all_item_details_in_screen(screen, exclude_item_ids=None, exclude_item_types=None, only_normal_items=True,
