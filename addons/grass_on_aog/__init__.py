@@ -5,7 +5,7 @@ import json
 import os
 import config
 from Arknights.helper import logger
-from util.requests import retry_get
+from addons.common_cache import load_aog_cache
 
 
 desc = f"""
@@ -33,31 +33,7 @@ cache_key = '%Y--%V'    # cache by week
 
 
 use_start_sp_stage = config.get('addons/grass_on_aog/use_start_sp_stage', False)
-
-
-aog_cache_file = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'aog_cache.json')
 inventory_cache_file = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'inventory_items_cache.json')
-
-
-def get_items_from_aog_api():
-    resp = retry_get('https://arkonegraph.herokuapp.com/total/CN')
-    return resp.json()
-
-
-def update_aog_cache():
-    data = {'aog': get_items_from_aog_api(), 'cacheTime': datetime.now().strftime(cache_key)}
-    with open(aog_cache_file, 'w') as f:
-        json.dump(data, f)
-    return data
-
-
-def load_aog_cache():
-    if os.path.exists(aog_cache_file):
-        with open(aog_cache_file, 'r') as f:
-            data = json.load(f)
-            if data['cacheTime'] == datetime.now().strftime(cache_key):
-                return data
-    return update_aog_cache()
 
 
 def order_stage(item):

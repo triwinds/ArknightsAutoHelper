@@ -1,4 +1,4 @@
-import time
+import os
 from Arknights.helper import logger
 from imgreco import inventory
 import cv2
@@ -9,9 +9,19 @@ from logging import DEBUG, INFO
 from addons.base import BaseAddOn
 from imgreco.stage_ocr import do_tag_ocr
 from imgreco.common import convert_to_pil
+import json
 
 
 rich_logger = get_logger(__name__)
+item_value_file = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'item_value.json')
+
+
+def init_value_map():
+    with open(item_value_file, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+value_map = init_value_map()
 
 
 def show_img(img):
@@ -27,11 +37,11 @@ def log_text(text, level=INFO):
 def get_credit_price(cv_screen, item_pos, ratio):
     x, y = item_pos
     x = x - int(50 * ratio)
-    y = y + int(76 * ratio)
-    price_img = cv_screen[y:y + int(30 * ratio), x:x + int(120 * ratio)]
+    y = y + int(77 * ratio)
+    price_img = cv_screen[y:y + int(28 * ratio), x:x + int(120 * ratio)]
     price_img = cv2.cvtColor(price_img, cv2.COLOR_RGB2GRAY)
     price_img = cv2.threshold(price_img, 180, 255, cv2.THRESH_BINARY)[1]
-    cv2.rectangle(cv_screen, (x, y), (x + int(120 * ratio), y + int(30 * ratio)), (0, 255, 0))
+    cv2.rectangle(cv_screen, (x, y), (x + int(120 * ratio), y + int(28 * ratio)), (0, 255, 0))
     # show_img(price_img)
     res = do_tag_ocr(price_img)
     return int(res)
@@ -46,19 +56,22 @@ def get_total_credit(pil_screen):
     return int(do_tag_ocr(credit_img, 1))
 
 
-def get_value(item_id: str, item_name: str, item_type: str, quantity: int):
-    # 10 理智 = 100 pt
-    # https://penguin-stats.io/result/item
+def get_value_old(item_id: str, item_name: str, item_type: str, quantity: int):
     if item_name == '招聘许可':
-        return 500
+        return 900
     if item_name.startswith('技巧概要·卷'):
         level = int(item_name[6:]) - 1
         return (3 ** level) * 10 * quantity
     if item_type == 'MATERIAL' and item_id.isdigit() and len(item_id) == 5:
-        if item_name in {'装置', '异铁', '酮凝集'}:
-            return 400
-        level = int(item_id[4:])
-        return level * 100 - 30
+        quantity = quantity if quantity else 2
+        if item_name == '异铁':
+            return 150 * quantity
+        elif item_name == '装置':
+            return 120
+        elif item_name == '酮凝集':
+            return 100 * quantity
+        level = int(item_id[4:]) - 1
+        return (4 ** level) * 15 * quantity
     if item_name == '龙门币':
         if quantity == 3600:
             return 150
@@ -69,6 +82,17 @@ def get_value(item_id: str, item_name: str, item_type: str, quantity: int):
         level = int(item_id[3:]) - 1
         return (2 ** level) * 18 * quantity
     return 1
+
+
+def get_value(item_id: str, item_name: str, item_type: str, quantity: int):
+    low_value_name_contains = ['碳', '加急许可', '家具']
+    for en in low_value_name_contains:
+        if en in item_name:
+            return 1
+    quantity = quantity if quantity else 1
+    if item_name in value_map:
+        sanity = value_map[item_name]
+        return int(quantity * sanity * 100)
 
 
 def solve(total_credit, values, prices):
@@ -148,10 +172,10 @@ class AutoCreditStoreAddOn(BaseAddOn):
 
 
 if __name__ == '__main__':
-    # AutoCreditStoreAddOn().run()
+    AutoCreditStoreAddOn().run()
     # print(get_total_credit(AutoCreditStoreAddOn().screenshot()))
-    from PIL import Image
+    # from PIL import Image
     # print(get_total_credit(Image.open('../../screenshot/test/img.png')))
     # print(get_total_credit(Image.open('../../screenshot/test/img_1.png')))
     # print(get_total_credit(Image.open('../../screenshot/test/img_2.png')))
-    print(calc_items(Image.open('../../screenshot/test/img_2.png')))
+    # print(calc_items(Image.open('../../screenshot/test/img_2.png')))

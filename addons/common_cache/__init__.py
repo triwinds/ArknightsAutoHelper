@@ -1,7 +1,7 @@
 import requests
 import os
 import json
-
+from util.requests import retry_get
 
 common_cache_config = {
     'character_table': {
@@ -12,9 +12,11 @@ common_cache_config = {
     },
 }
 proxies = {
-  "http": "http://localhost:7890",
-  "https": "http://localhost:7890",
+    "http": "http://localhost:7890",
+    "https": "http://localhost:7890",
 }
+aog_cache_file = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'aog_cache.json')
+aog_cache_key = '%Y--%V'
 
 
 def get_cache_path(cache_file_name):
@@ -56,3 +58,22 @@ def load_common_cache(cache_name, force_update=False):
 def load_game_data(table_name, force_update=False):
     url = f'https://raw.githubusercontent.com/Kengxxiao/ArknightsGameData/master/zh_CN/gamedata/excel/{table_name}.json'
     return load_net_json_cache(f'{table_name}_cache.json', url, 'utf-8', force_update)
+
+
+def _update_aog_cache():
+    from datetime import datetime
+    resp = retry_get('https://arkonegraph.herokuapp.com/total/CN')
+    data = {'aog': resp.json(), 'cacheTime': datetime.now().strftime(aog_cache_key)}
+    with open(aog_cache_file, 'w') as f:
+        json.dump(data, f)
+    return data
+
+
+def load_aog_cache(force_update=False):
+    from datetime import datetime
+    if os.path.exists(aog_cache_file) and not force_update:
+        with open(aog_cache_file, 'r') as f:
+            data = json.load(f)
+            if data['cacheTime'] == datetime.now().strftime(aog_cache_key):
+                return data
+    return _update_aog_cache()
