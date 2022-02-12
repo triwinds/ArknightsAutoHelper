@@ -10,7 +10,7 @@ import numpy as np
 import imgreco.main
 from Arknights.helper import logger
 from addons.activity import ActivityAddOn, get_stage_map
-from addons.base import BaseAddOn, pil2cv, crop_cv_by_rect, show_img
+from addons.base import BaseAddOn, pil2cv, crop_cv_by_rect
 from addons.common_cache import load_game_data
 from imgreco.ocr.ppocr import ocr_and_correct
 
@@ -101,6 +101,7 @@ class StartSpStageAddon(BaseAddOn):
 
     def enter_activity(self, activity):
         vh = self.vh
+        screen_height = self.helper.viewport[1]
         act_name = get_activity_name(activity)
         if act_name not in get_available_activity():
             raise RuntimeError(f'无效的活动: {act_name}')
@@ -118,9 +119,10 @@ class StartSpStageAddon(BaseAddOn):
             while True:
                 origin_x = random.randint(int(5.833 * vh), int(24.861 * vh))
                 origin_y = random.randint(int(57.222 * vh), int(77.917 * vh))
-                move = -random.randint(int(vh // 5), int(vh // 4))
+                move = -random.randint(int(screen_height // 5), int(screen_height // 4))
                 self.helper.adb.touch_swipe2((origin_x, origin_y),
                                              (random.randint(-20, 20), move), random.randint(900, 1200))
+                time.sleep(2)
                 act_pos_map = self.get_all_act_pos(crop_flag)
                 if act_name in act_pos_map:
                     break
@@ -216,5 +218,5 @@ class StartSpStageAddon(BaseAddOn):
 
 
 if __name__ == '__main__':
-    StartSpStageAddon().run('dm-1', 0, False)
+    StartSpStageAddon().run('mb-1', 0, False)
     # StartSpStageAddon().get_all_act_pos()
