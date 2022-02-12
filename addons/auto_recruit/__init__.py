@@ -6,7 +6,6 @@ from functools import lru_cache
 
 import cv2
 import numpy as np
-from cnocr import NUMBERS
 
 import config
 import imgreco
