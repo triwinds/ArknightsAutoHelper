@@ -1,14 +1,14 @@
-import numpy as np
 import cv2
-from . import item, imgops, util
+import numpy as np
 from PIL import Image
-from util.richlog import get_logger
 from ppocronnx.predict_system import TextSystem
 
+from util.richlog import get_logger
+from . import item, imgops, util
 
 logger = get_logger(__name__)
 exclude_items = {'32001', 'other', '3401'}
-ppocr = TextSystem(unclip_ratio=1.4, box_thresh=0.6, use_angle_cls=False)
+ppocr = TextSystem(unclip_ratio=1.2, box_thresh=0.6, use_angle_cls=False)
 ppocr.set_char_whitelist('.0123456789万')
 
 # circle size 128x128
@@ -86,7 +86,7 @@ def get_item_img(pil_screen, cv_screen, dbg_screen, center_x, center_y):
     ratio = img_h / pil_screen.height
     original_item_img = pil_screen.crop((int(x / ratio), int(y / ratio), int((x + itemreco_box_size) / ratio),
                                          int((y + itemreco_box_size) / ratio)))
-    numimg = imgops.scalecrop(original_item_img, 0.39, 0.705, 0.82, 0.85).convert('L')
+    numimg = imgops.scalecrop(original_item_img, 0.39, 0.70, 0.815, 0.86).convert('L')
     cv2.rectangle(dbg_screen, (x, y), (x + itemreco_box_size, y + itemreco_box_size), (255, 0, 0), 2)
     return {'item_img': cv_item_img, 'num_img': numimg,
             'item_pos': (int((x + itemreco_box_size // 2)/ratio), int((y + itemreco_box_size // 2)/ratio))}
@@ -141,17 +141,30 @@ def convert_to_pil(cv_img):
     return Image.fromarray(cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB))
 
 
-def get_quantity_ppocr(ori_img):
+def get_quantity_ppocr(item_id, ori_img):
     img_h, img_w = ori_img.shape[:2]
-    half_img = ori_img[int(img_h*0.65):img_h, 0:img_w]
-    res = ppocr.detect_and_ocr(half_img, 0.05)
-    res = sorted(res, key=lambda x: x.score, reverse=True)
-    logger.logtext(f'ppocr: {res}')
-    if res:
-        for ocr_res in res:
-            numtext = ocr_res.ocr_text
-            if numtext.isdigit():
-                return int(numtext)
+    half_img = ori_img[int(img_h * 0.65):img_h, 0:img_w]
+    img_h, img_w = half_img.shape[:2]
+    if item_id in {'30145'}:
+        half_img = cv2.cvtColor(half_img, cv2.COLOR_RGB2GRAY)
+        half_img[half_img < 120] = 0
+        half_img = cv2.cvtColor(half_img, cv2.COLOR_GRAY2RGB)
+    # logger.logimage(convert_to_pil(half_img))
+    boxes, elapse = ppocr.text_detector(half_img)
+    for points in boxes:
+        padding = 3 if np.max(points[:, 0]) - np.min(points[:, 0]) < 30 else -2
+        l = max(int(np.min(points[:, 0])) - padding, 0)
+        r = min(int(np.max(points[:, 0])) + padding, img_w)
+        t = max(int(np.min(points[:, 1])) - padding, 0)
+        b = min(int(np.max(points[:, 1])) + padding, img_h)
+        if r - l < 8 or b - t < 10:
+            continue
+        num_img = half_img[t:b, l:r]
+        logger.logimage(convert_to_pil(num_img))
+        res = ppocr.ocr_single_line(num_img)
+        logger.logtext(f'ppocr_det: {res}')
+        if res[0].isdigit() and res[1] > 0.5:
+            return int(res[0])
 
 
 def get_all_item_details_in_screen(screen, exclude_item_ids=None, exclude_item_types=None, only_normal_items=True,
@@ -172,7 +185,7 @@ def get_all_item_details_in_screen(screen, exclude_item_ids=None, exclude_item_t
             continue
         quantity = get_quantity(item_img['num_img'], 0.7)
         if not quantity:
-            quantity = get_quantity_ppocr(item_img['item_img'])
+            quantity = get_quantity_ppocr(item_id, item_img['item_img'])
         res.append({'itemId': item_id, 'itemName': item_name, 'itemType': item_type,
                     'quantity': quantity, 'itemPos': item_img['item_pos']})
     logger.logtext('res: %s' % res)
