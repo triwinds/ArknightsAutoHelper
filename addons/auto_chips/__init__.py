@@ -1,12 +1,11 @@
+import json
+import os
+from datetime import datetime, timezone, timedelta
+
+from Arknights.helper import logger
 from addons.base import BaseAddOn
 from addons.common_cache import load_game_data
 from penguin_stats import arkplanner
-import requests
-from datetime import datetime, timezone, timedelta
-import json
-import os
-import config
-from Arknights.helper import logger
 
 # cache_key = '%Y-%m-%d'  # cache by day
 cache_key = '%Y--%V'  # cache by week
@@ -59,12 +58,12 @@ class AutoChips(BaseAddOn):
     def run(self, **kwargs):
         my_chips = self.load_chips()
         my_chips = filter_today_chips(my_chips)
-        if my_chips[0]['count'] < self.minimum_storage:
+        if my_chips[0]['count'] >= self.minimum_storage:
+            logger.info('All chips are exceed minimum storage, exit.')
+            return
+        else:
             my_chips = self.load_chips(True)
             my_chips = filter_today_chips(my_chips)
-            if my_chips[0]['count'] >= self.minimum_storage:
-                logger.info('All chips are exceed minimum storage, exit.')
-                return
         chip = my_chips[0]
         item_stage_map = get_item_stage_map()
         stage_code = item_stage_map[chip['itemId']][0]
