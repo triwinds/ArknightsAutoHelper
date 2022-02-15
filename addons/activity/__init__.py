@@ -1,19 +1,18 @@
+import json
+import logging
 import os
 import time
-import logging
-import textdistance
+from functools import lru_cache
+
 import cv2
-import json
-import os
 import numpy as np
+import textdistance
 
 from addons.base import BaseAddOn
 from addons.common_cache import load_game_data
-from penguin_stats import arkplanner
 from imgreco import common, main
+from penguin_stats import arkplanner
 from util.richlog import get_logger
-
-from functools import lru_cache
 
 detect_cache_file = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'detect_cache.json')
 logger = logging
@@ -209,6 +208,7 @@ class ActivityAddOn(BaseAddOn):
     def try_detect_and_enter_zone(self, target_stage):
         detect_result = get_detect_result_from_cache(target_stage['zoneId'])
         if detect_result is None:
+            update_cache()
             logger.info('No detect cache found, try to detect zone with ppocr.')
             self.open_current_activity()
             return self.detect_and_enter_zone(target_stage)
@@ -245,4 +245,4 @@ class ActivityAddOn(BaseAddOn):
 
 if __name__ == '__main__':
     addon = ActivityAddOn()
-    addon.run('iw-8', 0)
+    addon.run('tb-8', 0)

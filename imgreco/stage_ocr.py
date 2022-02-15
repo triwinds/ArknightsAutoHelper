@@ -1,11 +1,11 @@
 from functools import lru_cache
+
 import cv2
 import numpy as np
-from . import resources
-import zipfile
-from . import common
-from util.richlog import get_logger
 
+from util.richlog import get_logger
+from . import common
+from . import resources
 
 idx2id = ['-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
           'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
@@ -107,7 +107,7 @@ def pil_to_cv_gray_img(pil_img):
 def cut_tag(screen, w, pt):
     img_h, img_w = screen.shape[:2]
     tag_w, tag_h = 130, 36
-    tag = thresholding(screen[pt[1] - 1:pt[1] + tag_h, pt[0] + w + 3:pt[0] + tag_w + w])
+    tag = thresholding(screen[pt[1] + 2:pt[1] + tag_h + 3, pt[0] + w + 3:pt[0] + tag_w + w])
     # 130 像素不一定能将 tag 截全，所以再检查一次看是否需要拓宽 tag 长度
     for i in range(3):
         for j in range(tag_h):
