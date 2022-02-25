@@ -188,11 +188,16 @@ def do_tag_ocr_dnn(img, noise_size=None):
     return predict_cv(img, noise_size)
 
 
-def do_img_ocr(pil_img):
+def do_img_ocr(pil_img, threshold_img=True):
     img = pil_to_cv_gray_img(pil_img)
     # cv2.imshow('test', img)
     # cv2.waitKey()
-    img = thresholding(img)
+    if threshold_img:
+        img = thresholding(img)
+    else:
+        img[img > 127] = 255
+        if np.average(img) > 127:
+            img = ~img
     remove_holes(img)
     return do_tag_ocr(img)
 

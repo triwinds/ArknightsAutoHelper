@@ -1,33 +1,32 @@
-import os
 import json
+import logging
+import os
 import re
 import time
-import logging
-from typing import Callable
 from dataclasses import dataclass
-from random import randint, uniform, gauss
-from time import sleep, monotonic
 from fractions import Fraction
+from random import randint, uniform, gauss
+from time import monotonic
+from typing import Callable
 
 import coloredlogs
 import numpy as np
 
 import config
 import imgreco.common
-import imgreco.main
-import imgreco.task
-import imgreco.map
 import imgreco.imgops
+import imgreco.main
+import imgreco.map
+import imgreco.task
 import penguin_stats.reporter
-from connector import auto_connect
-from connector.ADBConnector import ADBConnector, ensure_adb_alive
-from . import stage_path
-from .frontend import DummyFrontend
+from Arknights import frontend
 from Arknights.click_location import *
 from Arknights.flags import *
+from connector import auto_connect
+from connector.ADBConnector import ADBConnector
 from util.excutil import guard
-
-from Arknights import frontend
+from . import stage_path
+from .frontend import DummyFrontend
 
 logger = logging.getLogger('helper')
 coloredlogs.install(
@@ -699,7 +698,7 @@ class ArknightsHelper(object):
 
     def find_and_tap_episode_by_ocr(self, target):
         import imgreco.stage_ocr
-        from resources.imgreco.map_vectors import ep2region, region2ep
+        from resources.imgreco.map_vectors import ep2region
         target_region = ep2region.get(target)
         if target_region is None:
             logger.error(f'未能定位章节区域, target: {target}')
@@ -714,7 +713,7 @@ class ArknightsHelper(object):
         while True:
             screenshot = self.adb.screenshot()
             current_episode_tag = screenshot.crop(episode_tag_rect)
-            current_episode_str = imgreco.stage_ocr.do_img_ocr(current_episode_tag)
+            current_episode_str = imgreco.stage_ocr.do_img_ocr(current_episode_tag, threshold_img=False)
             logger.info(f'当前章节: {current_episode_str}')
             if not current_episode_str.startswith('EPISODE'):
                 logger.error(f'章节识别失败, current_episode_str: {current_episode_str}')
@@ -737,7 +736,7 @@ class ArknightsHelper(object):
             self.__swipe_screen(move, 10, self.viewport[0] // 4 * 3)
             screenshot = self.adb.screenshot()
             current_episode_tag = screenshot.crop(episode_tag_rect)
-            current_episode_str = imgreco.stage_ocr.do_img_ocr(current_episode_tag)
+            current_episode_str = imgreco.stage_ocr.do_img_ocr(current_episode_tag, threshold_img=False)
             logger.info(f'当前章节: {current_episode_str}')
             current_episode = int(current_episode_str[7:])
 
