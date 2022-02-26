@@ -1,18 +1,18 @@
 import json
+import os
 import random
-import time
 import re
+import time
+
+import cv2
+import numpy as np
+from ppocronnx.predict_system import TextSystem
 
 from Arknights.helper import logger
 from addons.base import BaseAddOn
 from addons.common_cache import load_game_data
-from imgreco.ocr.ppocr import ocr_for_single_line, ocr_and_correct, search_in_list
 from imgreco import util
-
-import cv2
-import os
-import numpy as np
-from ppocronnx.predict_system import TextSystem
+from imgreco.ocr.ppocr import search_in_list
 
 
 def open_img(name, mode=cv2.IMREAD_GRAYSCALE):
@@ -139,7 +139,7 @@ def crop_image_only_outside(gray_img, raw_img, threshold=128, padding=3):
 def ppocr_tag(tag):
     # show_img(tag)
     res = ppocr.ocr_single_line(tag)
-    logger.info(f'raw ppocr: {res}')
+    logger.debug(f'raw ppocr: {res}')
     if not res:
         return None
     if res[0] == '叶':
