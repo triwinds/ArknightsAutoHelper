@@ -713,7 +713,7 @@ class ArknightsHelper(object):
         while True:
             screenshot = self.adb.screenshot()
             current_episode_tag = screenshot.crop(episode_tag_rect)
-            current_episode_str = imgreco.stage_ocr.do_img_ocr(current_episode_tag, threshold_img=False)
+            current_episode_str = imgreco.stage_ocr.do_img_ocr(current_episode_tag)
             logger.info(f'当前章节: {current_episode_str}')
             if not current_episode_str.startswith('EPISODE'):
                 logger.error(f'章节识别失败, current_episode_str: {current_episode_str}')
@@ -736,7 +736,7 @@ class ArknightsHelper(object):
             self.__swipe_screen(move, 10, self.viewport[0] // 4 * 3)
             screenshot = self.adb.screenshot()
             current_episode_tag = screenshot.crop(episode_tag_rect)
-            current_episode_str = imgreco.stage_ocr.do_img_ocr(current_episode_tag, threshold_img=False)
+            current_episode_str = imgreco.stage_ocr.do_img_ocr(current_episode_tag)
             logger.info(f'当前章节: {current_episode_str}')
             current_episode = int(current_episode_str[7:])
 
