@@ -134,6 +134,10 @@ def softmax(x):
     return e_x / e_x.sum(axis=0)
 
 
+def crop_screen_by_rect(cv_screen, rect):
+    return cv_screen[int(rect[1]):int(rect[3]), int(rect[0]):int(rect[2])]
+
+
 if __name__ == "__main__":
     import sys
 

@@ -1,12 +1,12 @@
-import time
-
-from Arknights.helper import ArknightsHelper, logger
 import json
 import os
-
+import time
 from datetime import datetime, timezone, timedelta
-from addons.auto_recruit import AutoRecruitAddOn, get_op_name
+
+from Arknights.helper import ArknightsHelper, logger
+from addons.auto_clues import AutoClueAddOn
 from addons.auto_credit_store import AutoCreditStoreAddOn
+from addons.auto_recruit import AutoRecruitAddOn
 from addons.auto_shift import AutoShiftAddOn
 from imgreco.item import update_net
 
@@ -17,7 +17,8 @@ def load_cache():
     task_cache = {
         'time': datetime.now().astimezone(tz=timezone(timedelta(hours=4))).strftime('%Y-%m-%d'),
         'get_credit': False,
-        'auto_recruit': False
+        'auto_recruit': False,
+        'auto_clue_time': 0
     }
     if os.path.exists(task_cache_path):
         with open(task_cache_path, 'r', encoding='utf-8') as f:
@@ -48,6 +49,12 @@ def main():
 
     logger.info('===基建换班')
     AutoShiftAddOn(helper).run()
+
+    auto_clue_time = task_cache.get('auto_clue_time', 0)
+    if auto_clue_time + 6 * 3600 < time.time():
+        logger.info('===收取并应用线索')
+        AutoClueAddOn().run()
+        task_cache['auto_clue_time'] = int(time.time())
 
     if not task_cache['get_credit']:
         logger.info('===收取并使用信用点')
