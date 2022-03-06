@@ -6,6 +6,9 @@ import cv2
 from Arknights.helper import logger
 from addons.base import BaseAddOn, _find_template2
 from imgreco.common import convert_to_cv, crop_screen_by_rect
+from util.richlog import get_logger
+
+rich_logger = get_logger(__name__)
 
 
 def open_img(name, mode=cv2.IMREAD_GRAYSCALE):
@@ -78,6 +81,7 @@ class AutoClueAddOn(BaseAddOn):
         self.get_friend_clues()
         self.apply_all_clues()
         if self.try_unlock_clue():
+            rich_logger.logimage(self.screenshot())
             self.click((self.width//2, self.height//2))
             self.open_clue_view()
             self.apply_all_clues()
