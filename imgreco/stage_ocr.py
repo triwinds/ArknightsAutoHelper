@@ -21,10 +21,14 @@ def _load_onnx_model():
 
 
 def predict_cv(img, noise_size=None):
-    net = _load_onnx_model()
     char_imgs = crop_char_img(img, noise_size)
     if not char_imgs:
         return ''
+    return predict_char_images(char_imgs)
+
+
+def predict_char_images(char_imgs):
+    net = _load_onnx_model()
     roi_list = [np.expand_dims(resize_char(x), 2) for x in char_imgs]
     blob = cv2.dnn.blobFromImages(roi_list)
     net.setInput(blob)

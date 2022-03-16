@@ -2,10 +2,13 @@ import os
 import time
 
 import cv2
+import numpy as np
 
 from Arknights.helper import logger
 from addons.base import BaseAddOn, _find_template2
 from imgreco.common import convert_to_cv, crop_screen_by_rect
+from imgreco.ocr.ppocr import ocr as ppocr
+from imgreco.stage_ocr import predict_char_images, crop_char_img
 from util.richlog import get_logger
 
 rich_logger = get_logger(__name__)
@@ -57,6 +60,7 @@ clue_slot_imgs = load_clue_slot_img()
 my_daily_clue_img = open_img('my_daily_clue.png')
 friend_clue_img = open_img('friend_clue.png')
 give_clue_img = open_img('give_clue.png')
+send_clue_img = open_img('send_clue.png')
 unlock_clue_img = open_img('unlock_clue.png')
 
 
@@ -70,6 +74,75 @@ def _has_new_clue(pos, cv_screen, scale):
     return has_color(test_img, red)
 
 
+def crop_friend_name_tag(cv_screen, scale, send_button_pos):
+    l = int((send_button_pos[0] - 585) * scale)
+    r = int((send_button_pos[0] - 333) * scale)
+    t = int((send_button_pos[1] + 18) * scale)
+    b = int((send_button_pos[1] + 46) * scale)
+    return cv_screen[t:b, l:r]
+
+
+def reco_friend_name(cv_screen, scale, send_button_pos):
+    name_tag = crop_friend_name_tag(cv_screen, scale, send_button_pos)
+    # show_img(name_tag)
+    ocr_res = ppocr.ocr_single_line(name_tag)
+    if ocr_res:
+        return ocr_res[0].strip()
+
+
+def crop_friend_clue_tag(cv_screen, scale, send_button_pos):
+    l = int((send_button_pos[0] - 324) * scale)
+    r = int((send_button_pos[0] - 24) * scale)
+    t = int((send_button_pos[1] + 26) * scale)
+    b = int((send_button_pos[1] + 66) * scale)
+    return cv_screen[t:b, l:r]
+
+
+def scan_friend_empty_clues(cv_screen, scale, send_button_pos):
+    clue_tag = crop_friend_clue_tag(cv_screen, scale, send_button_pos)
+    clue_tag = cv2.cvtColor(clue_tag, cv2.COLOR_RGB2GRAY)
+    clue_tag = cv2.threshold(clue_tag, 150, 255, cv2.THRESH_BINARY)[1]
+    # show_img(clue_tag)
+    h, w = clue_tag.shape[:2]
+    char_imgs = crop_char_img(clue_tag)
+    final_char_imgs = []
+    for img in char_imgs:
+        ch, cw = img.shape[:2]
+        if ch < h:
+            # show_img(img)
+            final_char_imgs.append(img)
+    owned_clues = predict_char_images(final_char_imgs)
+    res = []
+    for i in range(1, 8):
+        if str(i) not in owned_clues:
+            res.append(i)
+    return res
+
+
+def scan_send_button(gray_screen, scale):
+    result = cv2.matchTemplate(gray_screen, send_clue_img, cv2.TM_CCOEFF_NORMED)
+    loc = np.where(result >= 0.9)
+    tag_set = set()
+    tag_set2 = set()
+    res = []
+    for pt in zip(*loc[::-1]):
+        pos_key = (pt[0] // 100, pt[1] // 100)
+        pos_key2 = (int(pt[0] / 100 + 0.5), int(pt[1] / 100 + 0.5))
+        if pos_key in tag_set or pos_key2 in tag_set2:
+            continue
+        tag_set.add(pos_key)
+        tag_set2.add(pos_key2)
+        res.append((int(pt[0]*scale), int(pt[1]*scale)))
+    return res
+
+
+def is_friend_latest_login_in_today(cv_screen, scale, send_button_pos):
+    blue = (169, 117, 0)
+    x = int((send_button_pos[0] - 355) * scale)
+    y = int((send_button_pos[1] + 100) * scale)
+    return test_color(cv_screen[y][x], blue)
+
+
 class AutoClueAddOn(BaseAddOn):
     def __init__(self, helper=None):
         super().__init__(helper)
@@ -80,9 +153,9 @@ class AutoClueAddOn(BaseAddOn):
         self.get_my_clues()
         self.get_friend_clues()
         self.apply_all_clues()
+        rich_logger.logimage(self.screenshot())
         if self.try_unlock_clue():
             rich_logger.logimage(self.screenshot())
-            self.click((self.width//2, self.height//2))
             self.open_clue_view()
             self.apply_all_clues()
 
@@ -113,10 +186,11 @@ class AutoClueAddOn(BaseAddOn):
 
     def try_unlock_clue(self):
         max_val, max_loc = self._find_template(unlock_clue_img, True)
-        if max_val < 0.7:
+        if max_val < 0.98:
             return False
         logger.info('all clues are ready, unlock clue.')
         self.click(max_loc, sleep_time=3)
+        return True
 
     def goto_meeting_room(self):
         self.helper.replay_custom_record('goto_meeting_room')
@@ -215,8 +289,18 @@ class AutoClueAddOn(BaseAddOn):
             gray_screen = cv2.resize(gray_screen, (int(self.width / scale), 720))
         return gray_screen, cv_screen, scale
 
+    def send_clue(self):
+        gray_screen, cv_screen, scale = self.screenshot2()
+        send_button_pos = scan_send_button(gray_screen, scale)
+        for pos in send_button_pos:
+            friend_name = reco_friend_name(cv_screen, scale, pos)
+            empty_clues = scan_friend_empty_clues(cv_screen, scale, pos)
+            today_login = is_friend_latest_login_in_today(cv_screen, scale, pos)
+            logger.info(f'{friend_name}({today_login}): {empty_clues}')
+
 
 if __name__ == '__main__':
-    AutoClueAddOn().run()
+    # AutoClueAddOn().run()
     # AutoClueAddOn().scan_empty_slot()
+    AutoClueAddOn().send_clue()
 
