@@ -1,16 +1,17 @@
+import json
 import os
-from Arknights.helper import logger
-from imgreco import inventory
+from logging import DEBUG, INFO
+
 import cv2
 import numpy as np
-import imgreco
-from util.richlog import get_logger
-from logging import DEBUG, INFO
-from addons.base import BaseAddOn
-from imgreco.stage_ocr import do_tag_ocr
-from imgreco.common import convert_to_pil
-import json
 
+import imgreco
+from Arknights.helper import logger
+from addons.base import BaseAddOn
+from imgreco import inventory
+from imgreco.common import convert_to_pil
+from imgreco.stage_ocr import do_tag_ocr
+from util.richlog import get_logger
 
 rich_logger = get_logger(__name__)
 item_value_file = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'item_value.json')
@@ -154,7 +155,7 @@ def calc_items(screen):
             picked_items.append(infos[i])
     if not picked_items:
         log_text('信用点不足以购买任何商品.')
-        return
+        return picked_items
     picked_names = [picked_item['itemName'] for picked_item in picked_items]
     log_text(f"picked items: {', '.join(picked_names)}")
     return picked_items

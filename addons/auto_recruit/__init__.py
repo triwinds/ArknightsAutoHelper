@@ -1,11 +1,11 @@
 import os
-import re
 import string
 import time
 from functools import lru_cache
 
 import cv2
 import numpy as np
+from ppocronnx.predict_system import TextSystem
 
 import config
 import imgreco
@@ -13,8 +13,7 @@ from Arknights.helper import logger
 from addons.base import BaseAddOn
 from addons.common_cache import load_game_data
 from imgreco.ocr.ppocr import ocr_for_single_line, ocr_and_correct
-from ppocronnx.predict_system import TextSystem
-
+from imgreco.stage_ocr import do_tag_ocr
 
 character_cache_file = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'character_cache.json')
 screenshot_root = config.SCREEN_SHOOT_SAVE_PATH
@@ -35,13 +34,6 @@ def get_character_name_map():
 def pil2cv(pil_img):
     cv_img = np.asarray(pil_img)
     return cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
-
-
-def get_ticket(screenshot):
-    item = ''.join(ocr_for_single_line(254-screenshot[661:684, 513:586],
-                                       cand_alphabet=string.digits + string.punctuation))
-    item = re.sub(r'[^0-9]', '', item)[:-1]
-    return item
 
 
 def show_img(img):
@@ -210,6 +202,17 @@ class AutoRecruitAddOn(BaseAddOn):
             logger.info('刷新失败')
             return False
 
+    def tap_back(self):
+        vh, vw = self.vh, self.vw
+        self.helper.tap_rect((3.889 * vh, 2.500 * vh, 18.889 * vh, 8.333 * vh))
+
+    def get_ticket(self):
+        gray_screen, scale = self.gray_screenshot()
+        ticket_tag = gray_screen[26:51, 832:874]
+        ticket_tag = cv2.threshold(ticket_tag, 150, 255, cv2.THRESH_BINARY)[1]
+        # show_img(ticket_tag)
+        return do_tag_ocr(ticket_tag, noise_size=2)
+
     def auto_recruit(self, hire_num):
         self.helper.replay_custom_record('goto_hr_page')
 
@@ -220,9 +223,8 @@ class AutoRecruitAddOn(BaseAddOn):
             if current_slot == -1:
                 logger.error('无空闲招募位, 结束招募.')
                 return
-            cv_screen = pil2cv(self.helper.adb.screenshot())
             # 检测公招券道具数量
-            ticket = get_ticket(cv_screen)
+            ticket = self.get_ticket()
             logger.info('剩余公招许可：%s' % ticket)
             if ticket == '0':
                 logger.info('无可用公招许可, 停止招募')
@@ -243,6 +245,7 @@ class AutoRecruitAddOn(BaseAddOn):
             else:
                 self.click((466, 286), 0)
             if rarity > 1:
+                self.tap_back()
                 logger.info(f"{current_slot} 号位置出现 4 星以上干员, 选择标签: {tags_choose}, 跳过此位置.")
                 continue
             for tag in tags_choose:
@@ -254,5 +257,6 @@ class AutoRecruitAddOn(BaseAddOn):
 if __name__ == '__main__':
     # AutoRecruitAddOn().hire_all()
     # AutoRecruitAddOn().auto_recruit(4)
-    AutoRecruitAddOn().clear_refresh()
+    # AutoRecruitAddOn().clear_refresh()
     # test()
+    print(AutoRecruitAddOn().get_ticket())
