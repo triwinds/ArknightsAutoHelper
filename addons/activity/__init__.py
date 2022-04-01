@@ -83,6 +83,12 @@ def get_zone_description(zone_id):
     return f'{act_name} - {zone_name}'
 
 
+def get_activity_name(zone_id):
+    activity_id = zone_id.split('_')[0]
+    activities = get_activities()
+    return activities[activity_id]['name']
+
+
 def get_zone_name(zone_id):
     zones = get_zones()
     zone_name = zones[zone_id]['zoneNameSecond']
@@ -147,6 +153,28 @@ def save_detect_result(zone_id, pos):
         load_detect_cache.cache_clear()
 
 
+def detect_box(screen, target_name):
+    dbg_screen = screen.copy()
+    ppocr = get_ppocr()
+    boxed_results = ppocr.detect_and_ocr(screen)
+    max_score = 0
+    max_res = None
+    for res in boxed_results:
+        cv2.drawContours(dbg_screen, [np.asarray(res.box, dtype=np.int32)], 0, (255, 0, 0), 2)
+        rich_logger.logtext(f'{res.text} {res.score} {res.box}')
+        score = textdistance.sorensen(target_name, res.ocr_text)
+        if score > max_score:
+            max_score = score
+            max_res = res
+    box_center = calc_box_center(max_res.box)
+    cv2.drawContours(dbg_screen, [np.asarray(max_res.box, dtype=np.int32)], 0, (0, 255, 0), 2)
+    cv2.circle(dbg_screen, box_center, 4, (0, 0, 255), -1)
+    rich_logger.logimage(common.convert_to_pil(dbg_screen))
+    rich_logger.logtext(f"result {max_res}, box_center: {box_center}")
+    logger.info(f"result {max_res}, box_center: {box_center}, score: {max_score}")
+    return box_center, max_score
+
+
 class ActivityAddOn(BaseAddOn):
     def run(self, target_stage_code, repeat_times=1000, allow_extra_stage_icons=False):
         target_stage_code = target_stage_code.upper()
@@ -191,16 +219,30 @@ class ActivityAddOn(BaseAddOn):
             save_detect_result(zone_id, [-1, -1])
             raise e
 
-    def open_current_activity(self):
+    def open_current_activity(self, target_stage):
+        self.helper.back_to_main()
+        if self.open_activity_from_homepage(target_stage):
+            return
         self.open_terminal()
         vh, vw = self.vh, self.vw
         activity_rect = (14.583 * vh, 71.944 * vh, 57.639 * vh, 83.333 * vh)
         logger.info('open current activity')
         self.helper.tap_rect(activity_rect)
-        time.sleep(2)
+        time.sleep(3)
+
+    def open_activity_from_homepage(self, target_stage):
+        screen = common.convert_to_cv(self.screenshot())
+        activity_name = get_activity_name(target_stage['zoneId'])
+        if activity_name.endswith('·复刻'):
+            activity_name = activity_name[:-3]
+        box_center, max_score = detect_box(screen, activity_name)
+        if max_score > 0.4:
+            logger.info(f"检测到 {activity_name} 活动, 可能是当前活动, 尝试打开...")
+            self.click(box_center, 3)
+            return True
+        return False
 
     def open_terminal(self):
-        self.helper.back_to_main()
         logger.info('open terminal')
         self.helper.tap_quadrilateral(main.get_ballte_corners(self.screenshot()))
         time.sleep(1)
@@ -210,10 +252,10 @@ class ActivityAddOn(BaseAddOn):
         if detect_result is None:
             update_cache()
             logger.info('No detect cache found, try to detect zone with ppocr.')
-            self.open_current_activity()
+            self.open_current_activity(target_stage)
             return self.detect_and_enter_zone(target_stage)
         elif detect_result != [-1, -1]:
-            self.open_current_activity()
+            self.open_current_activity(target_stage)
             logger.info(f'get detect result from cache: {detect_result}')
             self.click(detect_result, sleep_time=2, randomness=(2, 2))
         return detect_result
@@ -222,27 +264,11 @@ class ActivityAddOn(BaseAddOn):
         zone_name = get_zone_name(target_stage['zoneId'])
         logger.info(f"target zone name: {zone_name}")
         screen = common.convert_to_cv(self.helper.adb.screenshot())
-        dbg_screen = screen.copy()
-        ppocr = get_ppocr()
-        boxed_results = ppocr.detect_and_ocr(screen)
-        max_score = 0
-        max_res = None
-        for res in boxed_results:
-            cv2.drawContours(dbg_screen, [np.asarray(res.box, dtype=np.int32)], 0, (0, 255, 0), 2)
-            score = textdistance.sorensen(zone_name, res.ocr_text)
-            if score > max_score:
-                max_score = score
-                max_res = res
-        box_center = calc_box_center(max_res.box)
-        cv2.drawContours(dbg_screen, [np.asarray(max_res.box, dtype=np.int32)], 0, (255, 0, 0), 2)
-        cv2.circle(dbg_screen, box_center, 4, (0, 0, 255), -1)
-        rich_logger.logimage(common.convert_to_pil(dbg_screen))
-        rich_logger.logtext(f"result {max_res}, box_center: {box_center}")
-        logger.info(f"result {max_res}, box_center: {box_center}")
+        box_center, max_score = detect_box(screen, zone_name)
         self.click(box_center, sleep_time=2, randomness=(2, 2))
         return box_center
 
 
 if __name__ == '__main__':
     addon = ActivityAddOn()
-    addon.run('tb-8', 0)
+    addon.run('wd-8', 0)
