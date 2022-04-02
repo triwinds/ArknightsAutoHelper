@@ -161,7 +161,7 @@ def detect_box(screen, target_name):
     max_res = None
     for res in boxed_results:
         cv2.drawContours(dbg_screen, [np.asarray(res.box, dtype=np.int32)], 0, (255, 0, 0), 2)
-        rich_logger.logtext(f'{res.text} {res.score} {res.box}')
+        rich_logger.logtext(f'{res.ocr_text} {res.score} {res.box}')
         score = textdistance.sorensen(target_name, res.ocr_text)
         if score > max_score:
             max_score = score
