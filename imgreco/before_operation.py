@@ -42,7 +42,7 @@ def recognize(img):
     logger.logtext(aptext)
     # print("AP:", aptext)
 
-    opidimg = img.crop((100 * vw - 55.694 * vh, 11.667 * vh, 100 * vw - 44.028 * vh, 15.139 * vh)).convert('L')
+    opidimg = img.crop((100 * vw - 49.444 * vh, 10.972 * vh, 100 * vw - 38.472 * vh, 15.556 * vh)).convert('L')
     opidimg = imgops.enhance_contrast(opidimg, 80, 255)
     logger.logimage(opidimg)
     opidtext = str(reco_Novecento.recognize(opidimg))
@@ -57,15 +57,15 @@ def recognize(img):
     nofriendshiplist = ['OF-F']
     no_friendship = any(opidtext.startswith(header) for header in nofriendshiplist)
 
-    delegateimg = img.crop((100 * vw - 32.778 * vh, 79.444 * vh, 100 * vw - 4.861 * vh, 85.417 * vh)).convert('L')
-    template = resources.load_image_cached('before_operation/delegation_checked.png', 'L')
-    logger.logimage(delegateimg)
-    mse = imgops.compare_mse(*imgops.uniform_size(delegateimg, template))
-    logger.logtext('mse=%f' % mse)
-    delegated = mse < 3251
+    delegate_checkbox = img.crop((100 * vw - 31.667 * vh, 81.667 * vh, 100 * vw - 27.639 * vh, 86.389 * vh)).convert('L')
+    logger.logimage(delegate_checkbox)
+    delegate_checkbox_cv = np.asarray(delegate_checkbox)
+    delegate_avg = np.average(delegate_checkbox_cv)
+    logger.logtext('delegate_avg=%f' % delegate_avg)
+    delegated = delegate_avg > 127
     # print('delegated:', delegated)
 
-    consumeimg = img.crop((100 * vw - 12.870 * vh, 94.028 * vh, 100 * vw - 7.222 * vh, 97.361 * vh)).convert('L')
+    consumeimg = img.crop((100 * vw - 13.472 * vh, 95.972 * vh, 100 * vw - 7.361 * vh, 99.028 * vh)).convert('L')
     consumeimg = imgops.enhance_contrast(consumeimg, 80, 255)
     logger.logimage(consumeimg)
     consumetext, minscore = reco_Noto.recognize2(consumeimg, subset='-0123456789')
@@ -87,8 +87,8 @@ def recognize(img):
         'delegated': delegated,
         'consume': int(consumetext) if consumetext.isdigit() else None,
         'style': 'main',
-        'delegate_button': (100 * vw - 32.778 * vh, 79.444 * vh, 100 * vw - 4.861 * vh, 85.417 * vh),
-        'start_button': (100 * vw - 30.972 * vh, 88.241 * vh, 100 * vw - 3.611 * vh, 95.556 * vh)
+        'delegate_button': (100*vw-32.083*vh, 81.111*vh, 100*vw-6.111*vh, 86.806*vh),
+        'start_button': (100*vw-32.083*vh, 89.306*vh, 100*vw-6.111*vh, 96.528*vh)
     }
     # print('consumption:', consumetext)
 
@@ -114,7 +114,6 @@ def recognize_interlocking(img):
     consumetext = ''.join(c for c in consumetext if c in '0123456789')
     logger.logtext('{}, {}'.format(consumetext, minscore))
 
-
     return {
         'AP': aptext,
         'consume_ap': consume_ap,
@@ -123,8 +122,8 @@ def recognize_interlocking(img):
         'delegated': delegated,
         'consume': int(consumetext) if consumetext.isdigit() else None,
         'style': 'interlocking',
-        'delegate_button': (100*vw-32.963*vh, 78.333*vh, 100*vw-5.185*vh, 84.167*vh),
-        'start_button': (100*vw-33.426*vh, 86.296*vh, 100*vw-5.185*vh, 95.000*vh)
+        'delegate_button': (100*vw-32.083*vh, 81.111*vh, 100*vw-6.111*vh, 86.806*vh),
+        'start_button': (100*vw-32.083*vh, 89.306*vh, 100*vw-6.111*vh, 96.528*vh)
     }
 
 

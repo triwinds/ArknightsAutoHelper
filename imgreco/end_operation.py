@@ -1,18 +1,18 @@
-import sys
 import math
+import sys
 
 import cv2
 import numpy as np
 from PIL import Image
 
+from imgreco import common
+from imgreco.stage_ocr import do_tag_ocr
 from util.richlog import get_logger
 from . import imgops
 from . import item
 from . import minireco
 from . import resources
 from . import util
-from imgreco import common
-from imgreco.stage_ocr import do_tag_ocr
 
 logger = get_logger(__name__)
 
@@ -63,14 +63,14 @@ def tell_group(groupimg, session, bartop, barbottom, ):
         return (groupname, [('(家具)', 1, 'furni')])
 
     vw, vh = session.vw, session.vh
-    itemwidth = 20.370 * vh
+    itemwidth = 19.167 * vh
     itemcount = roundint(groupimg.width / itemwidth)
     logger.logtext('group has %d items' % itemcount)
     result = []
     for i in range(itemcount):
-        itemimg = groupimg.crop((itemwidth * i, 0.000 * vh, itemwidth * (i+1), 18.981 * vh))
+        itemimg = groupimg.crop((itemwidth * i, 0.000 * vh, itemwidth * (i+1), 19.167 * vh))
         # x1, _, x2, _ = (0.093*vh, 0.000*vh, 19.074*vh, 18.981*vh)
-        itemimg = itemimg.crop((0.093 * vh, 0, 19.074 * vh, itemimg.height))
+        itemimg = itemimg.crop((1.1*vh, 1.1*vh, 18.067 * vh, 18.067 * vh))
         recognized_item = item.tell_item(itemimg, with_quantity=True, learn_unrecognized=session.learn_unrecognized)
         if recognized_item.low_confidence:
             session.low_confidence = True
@@ -162,7 +162,7 @@ def check_end_operation(style, friendship, img):
 def check_end_operation_main_friendship(img):
     vw, vh = util.get_vwvh(img.size)
     template = resources.load_image_cached('end_operation/friendship.png', 'RGB')
-    operation_end_img = img.crop((117.083*vh, 64.306*vh, 121.528*vh, 69.583*vh)).convert('RGB')
+    operation_end_img = img.crop((9.167*vh, 57.222*vh, 13.056*vh, 61.667*vh)).convert('RGB')
     mse = imgops.compare_mse(*imgops.uniform_size(template, operation_end_img))
     return mse < 3251
 
@@ -217,10 +217,10 @@ def recognize_main(im, learn_unrecognized_item):
     t0 = time.monotonic()
     vw, vh = util.get_vwvh(im.size)
 
-    lower = im.crop((0, 61.111 * vh, 100 * vw, 100 * vh))
-    logger.logimage(lower)
+    # lower = im.crop((0, 61.111 * vh, 100 * vw, 100 * vh))
+    # logger.logimage(lower)
 
-    operation_id = lower.crop((0, 4.444 * vh, 23.611 * vh, 11.388 * vh)).convert('L')
+    operation_id = im.crop((19.861*vh, 9.861*vh, 39.861*vh, 15.000*vh)).convert('L')
     # logger.logimage(operation_id)
     operation_id = imgops.enhance_contrast(operation_id, 80, 220)
     logger.logimage(operation_id)
@@ -230,7 +230,7 @@ def recognize_main(im, learn_unrecognized_item):
     # operation_name = imgops.enhance_contrast(imgops.crop_blackedge(operation_name))
     # logger.logimage(operation_name)
 
-    stars = lower.crop((23.611 * vh, 6.759 * vh, 53.241 * vh, 16.944 * vh))
+    stars = im.crop((9.583*vh, 40.694*vh, 38.472*vh, 48.750*vh))
     logger.logimage(stars)
     stars_status = tell_stars(stars)
 
@@ -246,13 +246,18 @@ def recognize_main(im, learn_unrecognized_item):
         'low_confidence': False
     }
 
-    items = lower.crop((68.241 * vh, 10.926 * vh, lower.width, 35.000 * vh))
+    items = im.crop((4.375*vw, 70.417*vh, 96.016*vw, 91.806*vh))
     logger.logimage(items)
 
-    x, y = 6.667 * vh, 18.519 * vh
+    x, y = int(7 * vh), int(17.9 * vh)
+    # items_cv = common.convert_to_cv(items)
+    # cv2.line(items_cv, (x, y), (x + 500, y), (255, 255, 255), 1)
+    # logger.logimage(common.convert_to_pil(items_cv))
+
     linedet = items.crop((x, y, x + 1, items.height)).convert('L')
     d = np.asarray(linedet)
-    linedet = find_jumping(d.reshape(linedet.height), 55)
+    logger.logimage(common.convert_to_pil(d.reshape(linedet.height)))
+    linedet = find_jumping(d.reshape(linedet.height), 10)
     if len(linedet) >= 2:
         linetop, linebottom, *_ = linedet
     else:

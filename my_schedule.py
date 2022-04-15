@@ -75,10 +75,10 @@ def clear_sanity_by_item(only_activity=False):
             return
 
     AutoChips().run()
-    from addons.grass_on_aog import GrassAddOn
-    GrassAddOn().run()
-    # helper = ArknightsHelper()
-    # helper.module_battle('9-18')
+    # from addons.grass_on_aog import GrassAddOn
+    # GrassAddOn().run()
+    helper = ArknightsHelper()
+    helper.module_battle('1-7')
 
 
 def send_by_tg_bot(chat_id, title, content):
@@ -114,7 +114,7 @@ def recruit():
 def main():
     do_works()
     scheduler = BlockingScheduler(timezone='Asia/Shanghai')
-    scheduler.add_job(recruit, 'cron', day_of_week='0,1,2,3,4,5,6', hour='19', minute=0)
+    scheduler.add_job(recruit, 'cron', day_of_week='0,1,2', hour='19', minute=0)
     scheduler.add_job(restart_all, 'cron', day='*/2', hour=4, minute=5)
     scheduler.add_job(do_works, 'cron', hour='*/4', minute=15)
     scheduler.start()
