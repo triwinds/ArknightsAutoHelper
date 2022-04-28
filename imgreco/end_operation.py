@@ -169,8 +169,9 @@ def check_end_operation_main_friendship(img):
 def check_end_operation_main(img):
     vw, vh = util.get_vwvh(img.size)
     template = resources.load_image_cached('end_operation/end.png', 'L')
-    operation_end_img = img.crop((4.722 * vh, 80.278 * vh, 56.389 * vh, 93.889 * vh)).convert('L')
+    operation_end_img = img.crop((7.361*vh, 24.306*vh, 50.000*vh, 35.972*vh)).convert('L')
     operation_end_img = imgops.enhance_contrast(operation_end_img, 225, 255)
+    logger.logimage(operation_end_img)
     mse = imgops.compare_mse(*imgops.uniform_size(template, operation_end_img))
     return mse < 6502
 

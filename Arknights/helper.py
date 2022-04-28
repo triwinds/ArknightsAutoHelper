@@ -407,6 +407,8 @@ class ArknightsHelper(object):
                     self.tap_rect(imgreco.end_operation.get_end2_rect(screenshot))
                     screenshot = self.adb.screenshot()
                     end_flag = imgreco.end_operation.check_end_operation_main(screenshot)
+                    if end_flag:
+                        time.sleep(2)
             if end_flag:
                 logger.info('战斗结束')
                 self.operation_time.append(t)

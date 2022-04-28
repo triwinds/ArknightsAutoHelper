@@ -114,7 +114,7 @@ def recruit():
 def main():
     do_works()
     scheduler = BlockingScheduler(timezone='Asia/Shanghai')
-    scheduler.add_job(recruit, 'cron', day_of_week='0,1,2', hour='19', minute=0)
+    # scheduler.add_job(recruit, 'cron', day_of_week='0,1,2', hour='19', minute=0)
     scheduler.add_job(restart_all, 'cron', day='*/2', hour=4, minute=5)
     scheduler.add_job(do_works, 'cron', hour='*/4', minute=15)
     scheduler.start()

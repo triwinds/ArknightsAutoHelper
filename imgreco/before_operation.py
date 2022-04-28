@@ -1,10 +1,13 @@
 import sys
 from functools import lru_cache
 
+import cv2
 import numpy as np
 from PIL import Image
 
+from addons.base import _find_template2
 from util.richlog import get_logger
+from . import common
 from . import imgops
 from . import minireco
 from . import resources
@@ -17,6 +20,10 @@ def load_data():
     reco = minireco.MiniRecognizer(resources.load_pickle('minireco/NotoSansCJKsc-Medium.dat'))
     reco2 = minireco.MiniRecognizer(resources.load_pickle('minireco/Novecentosanswide_Medium.dat'))
     return (reco, reco2)
+
+
+consume_icon = common.convert_to_cv(resources.load_image_cached('before_operation/consume_icon.png'), cv2.COLOR_BGR2GRAY)
+
 
 @lru_cache(1)
 def recognize(img):
@@ -65,7 +72,10 @@ def recognize(img):
     delegated = delegate_avg > 127
     # print('delegated:', delegated)
 
-    consumeimg = img.crop((100 * vw - 13.472 * vh, 95.972 * vh, 100 * vw - 7.361 * vh, 99.028 * vh)).convert('L')
+    scale = vh / 7.2
+    max_val, max_loc = _find_template2(consume_icon, common.convert_to_cv(img, cv2.COLOR_BGR2GRAY), scale)
+    consume_rect = map(int, (max_loc[0] + 4.863*vh, max_loc[1], max_loc[0] + 12.5*vh, max_loc[1] + 3.333*vh))
+    consumeimg = img.crop(consume_rect).convert('L')
     consumeimg = imgops.enhance_contrast(consumeimg, 80, 255)
     logger.logimage(consumeimg)
     consumetext, minscore = reco_Noto.recognize2(consumeimg, subset='-0123456789')
@@ -92,39 +102,39 @@ def recognize(img):
     }
     # print('consumption:', consumetext)
 
-
-def recognize_interlocking(img):
-    vw, vh = util.get_vwvh(img)
-
-    consume_ap = imgops.compare_region_mse(img, (100*vw-31.944*vh, 2.407*vh, 100*vw-25.648*vh, 8.426*vh), 'before_operation/interlocking/ap_icon.png', logger=logger)
-
-    apimg = img.crop((100*vw-25.278*vh, 2.407*vh, 100*vw-10.093*vh, 8.426*vh)).convert('L')
-    reco_Noto, reco_Novecento = load_data()
-    apimg = imgops.enhance_contrast(apimg, 80, 255)
-    logger.logimage(apimg)
-    aptext, _ = reco_Noto.recognize2(apimg, subset='0123456789/')
-    logger.logtext(aptext)
-
-    delegated = imgops.compare_region_mse(img, (100*vw-32.963*vh, 78.333*vh, 100*vw-5.185*vh, 84.167*vh), 'before_operation/interlocking/delegation_checked.png', logger=logger)
-
-    consumeimg = img.crop((100*vw-11.944*vh, 94.259*vh, 100*vw-5.185*vh, 97.500*vh)).convert('L')
-    consumeimg = imgops.enhance_contrast(consumeimg, 80, 255)
-    logger.logimage(consumeimg)
-    consumetext, minscore = reco_Noto.recognize2(consumeimg, subset='-0123456789')
-    consumetext = ''.join(c for c in consumetext if c in '0123456789')
-    logger.logtext('{}, {}'.format(consumetext, minscore))
-
-    return {
-        'AP': aptext,
-        'consume_ap': consume_ap,
-        'no_friendship': False,
-        'operation': 'interlocking',
-        'delegated': delegated,
-        'consume': int(consumetext) if consumetext.isdigit() else None,
-        'style': 'interlocking',
-        'delegate_button': (100*vw-32.083*vh, 81.111*vh, 100*vw-6.111*vh, 86.806*vh),
-        'start_button': (100*vw-32.083*vh, 89.306*vh, 100*vw-6.111*vh, 96.528*vh)
-    }
+#
+# def recognize_interlocking(img):
+#     vw, vh = util.get_vwvh(img)
+#
+#     consume_ap = imgops.compare_region_mse(img, (100*vw-31.944*vh, 2.407*vh, 100*vw-25.648*vh, 8.426*vh), 'before_operation/interlocking/ap_icon.png', logger=logger)
+#
+#     apimg = img.crop((100*vw-25.278*vh, 2.407*vh, 100*vw-10.093*vh, 8.426*vh)).convert('L')
+#     reco_Noto, reco_Novecento = load_data()
+#     apimg = imgops.enhance_contrast(apimg, 80, 255)
+#     logger.logimage(apimg)
+#     aptext, _ = reco_Noto.recognize2(apimg, subset='0123456789/')
+#     logger.logtext(aptext)
+#
+#     delegated = imgops.compare_region_mse(img, (100*vw-32.963*vh, 78.333*vh, 100*vw-5.185*vh, 84.167*vh), 'before_operation/interlocking/delegation_checked.png', logger=logger)
+#
+#     consumeimg = img.crop((100*vw-11.944*vh, 94.259*vh, 100*vw-5.185*vh, 97.500*vh)).convert('L')
+#     consumeimg = imgops.enhance_contrast(consumeimg, 80, 255)
+#     logger.logimage(consumeimg)
+#     consumetext, minscore = reco_Noto.recognize2(consumeimg, subset='-0123456789')
+#     consumetext = ''.join(c for c in consumetext if c in '0123456789')
+#     logger.logtext('{}, {}'.format(consumetext, minscore))
+#
+#     return {
+#         'AP': aptext,
+#         'consume_ap': consume_ap,
+#         'no_friendship': False,
+#         'operation': 'interlocking',
+#         'delegated': delegated,
+#         'consume': int(consumetext) if consumetext.isdigit() else None,
+#         'style': 'interlocking',
+#         'delegate_button': (100*vw-32.083*vh, 81.111*vh, 100*vw-6.111*vh, 86.806*vh),
+#         'start_button': (100*vw-32.083*vh, 89.306*vh, 100*vw-6.111*vh, 96.528*vh)
+#     }
 
 
 def check_confirm_troop_rect(img):
