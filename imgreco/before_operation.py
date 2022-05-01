@@ -23,25 +23,26 @@ def load_data():
 
 
 consume_icon = common.convert_to_cv(resources.load_image_cached('before_operation/consume_icon.png'), cv2.COLOR_BGR2GRAY)
+consume_icon = cv2.threshold(consume_icon, 127, 255, cv2.THRESH_BINARY)[1]
+ap_icon = common.convert_to_cv(resources.load_image_cached('before_operation/ap_icon2.png'), cv2.COLOR_BGR2GRAY)
+ap_icon = cv2.threshold(ap_icon, 127, 255, cv2.THRESH_BINARY)[1]
+delegation_checked = common.convert_to_cv(resources.load_image_cached('before_operation/delegation_checked2.png'), cv2.COLOR_BGR2GRAY)
 
 
 @lru_cache(1)
 def recognize(img):
     vw, vh = util.get_vwvh(img.size)
+    scale = vh / 7.2
 
-    # if imgops.compare_region_mse(img, (43.333*vh, 86.111*vh, 50.185*vh, 95.093*vh), 'before_operation/interlocking/interlocking_tag.png', threshold=650, logger=logger):
-    #     return recognize_interlocking(img)
+    cv_screen = common.convert_to_cv(img, cv2.COLOR_BGR2GRAY)
+    thr_screen = cv2.threshold(cv_screen, 127, 255, cv2.THRESH_BINARY)[1]
+    # cv2.imshow('test', thr_screen)
+    # cv2.waitKey(0)
+    max_val, max_loc = _find_template2(ap_icon, thr_screen, scale)
+    ap_rect = map(int, (max_loc[0] + 6.53 * vh, max_loc[1], max_loc[0] + 23 * vh, max_loc[1] + 6.388 * vh))
+    consume_ap = max_val > 0.8
 
-    apicon1 = img.crop((100*vw-29.722*vh, 2.130*vh, 100*vw-22.593*vh, 8.519*vh)).convert('RGB')
-
-    apicon2 = resources.load_image_cached('before_operation/ap_icon.png', 'RGB')
-    apicon1, apicon2 = imgops.uniform_size(apicon1, apicon2)
-    mse = imgops.compare_mse(apicon1, apicon2)
-    logger.logimage(apicon1)
-    logger.logtext('mse=%f' % mse)
-    consume_ap = mse < 3251
-
-    apimg = img.crop((100 * vw - 21.019 * vh, 2.917 * vh, 100 * vw, 8.194 * vh)).convert('L')
+    apimg = img.crop(ap_rect).convert('L')
     reco_Noto, reco_Novecento = load_data()
     apimg = imgops.enhance_contrast(apimg, 80, 255)
     logger.logimage(apimg)
@@ -64,17 +65,15 @@ def recognize(img):
     nofriendshiplist = ['OF-F']
     no_friendship = any(opidtext.startswith(header) for header in nofriendshiplist)
 
-    delegate_checkbox = img.crop((100 * vw - 31.667 * vh, 81.667 * vh, 100 * vw - 27.639 * vh, 86.389 * vh)).convert('L')
-    logger.logimage(delegate_checkbox)
-    delegate_checkbox_cv = np.asarray(delegate_checkbox)
-    delegate_avg = np.average(delegate_checkbox_cv)
-    logger.logtext('delegate_avg=%f' % delegate_avg)
-    delegated = delegate_avg > 127
-    # print('delegated:', delegated)
+    max_val, max_loc = _find_template2(delegation_checked, cv_screen, scale)
+    logger.logtext(f'delegated max_val, max_loc: {max_val, max_loc}')
+    delegated = max_val > 0.9
+    logger.logtext('delegated: %s' % delegated)
 
-    scale = vh / 7.2
     max_val, max_loc = _find_template2(consume_icon, common.convert_to_cv(img, cv2.COLOR_BGR2GRAY), scale)
-    consume_rect = map(int, (max_loc[0] + 4.863*vh, max_loc[1], max_loc[0] + 12.5*vh, max_loc[1] + 3.333*vh))
+    consume_rect = list(map(int, (max_loc[0] + 4.863*vh, max_loc[1], max_loc[0] + 12.5*vh, max_loc[1] + 3.333*vh)))
+    start_rect = list(map(int, (max_loc[0], max_loc[1] - 4.58*vh, max_loc[0] + 12.5 * vh, max_loc[1] + 3.333 * vh)))
+    delegate_button_rect = list(map(int, (max_loc[0], max_loc[1] - 13.194 * vh, max_loc[0] + 12.5 * vh, max_loc[1] - 12.9 * vh)))
     consumeimg = img.crop(consume_rect).convert('L')
     consumeimg = imgops.enhance_contrast(consumeimg, 80, 255)
     logger.logimage(consumeimg)
@@ -97,8 +96,8 @@ def recognize(img):
         'delegated': delegated,
         'consume': int(consumetext) if consumetext.isdigit() else None,
         'style': 'main',
-        'delegate_button': (100*vw-32.083*vh, 81.111*vh, 100*vw-6.111*vh, 86.806*vh),
-        'start_button': (100*vw-32.083*vh, 89.306*vh, 100*vw-6.111*vh, 96.528*vh)
+        'delegate_button': delegate_button_rect,
+        'start_button': start_rect
     }
     # print('consumption:', consumetext)
 

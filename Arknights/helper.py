@@ -1086,9 +1086,9 @@ class ArknightsHelper(object):
                     if record.get('wait_seconds_after_touch'):
                         self.__wait(record['wait_seconds_after_touch'])
 
-    def try_replay_record(self, record_name):
+    def try_replay_record(self, record_name, quiet=False):
         try:
-            self.replay_custom_record(record_name)
+            self.replay_custom_record(record_name, quiet=quiet)
             return True
         except RuntimeError as e:
             logger.info(f'skip {record_name}, {e}')

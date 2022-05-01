@@ -66,6 +66,7 @@ ppocr_fix_map = {
     '赤黑大': '赫默',
     '赫黑大': '赫默',
     '赤赤黑大': '赫默',
+    '闪': '澄闪',
 }
 room_rect_map = {
     'control_room': (649, 69, 1057, 247),
@@ -494,10 +495,32 @@ class AutoShiftAddOn(BaseAddOn):
         self.helper.tap_rect((100 * vw - 47.083 * vh, 80.278 * vh, 100 * vw - 21.806 * vh, 93.750 * vh))
         time.sleep(5)
 
+    def clear_drones(self, room):
+        logger.info('clear drones...')
+        self.goto_building()
+        self.open_room(room)
+        self.helper.try_replay_record('clear_drones2', quiet=True)
+        time.sleep(5)
+        logger.info('set product to max...')
+        self.helper.try_replay_record('set_product_to_max', quiet=True)
+
+
+def check_diff_ops(shift1, shift2):
+    with open(shift1, 'r', encoding='utf-8') as f:
+        s1 = json.load(f)
+    with open(shift2, 'r', encoding='utf-8') as f:
+        s2 = json.load(f)
+    set1 = set([x for k in s1 for x in s1[k]])
+    set2 = set([x for k in s2 for x in s2[k]])
+    print('set1 - set2: ', set1 - set2)
+    print('set2 - set1: ', set2 - set1)
+
 
 if __name__ == '__main__':
-    # AutoShiftAddOn().dump_current_shift(exclude_room={'control_room', 'b105', 'b305', 'b401'})
+    AutoShiftAddOn().dump_current_shift(exclude_room={'control_room', 'b105', 'b305', 'b401'})
     # AutoShiftAddOn().apply_shift('saved_shift/shift2_cache.json')
     # print(AutoShiftAddOn().get_all_op_on_screen())
     # AutoShiftAddOn().run()
-    AutoShiftAddOn().get_all_op_on_screen()
+    # AutoShiftAddOn().get_all_op_on_screen()
+    # AutoShiftAddOn().clear_drones('b302')
+    # check_diff_ops('saved_shift/shift000_cache.json', 'saved_shift/shift002_cache.json')
