@@ -225,7 +225,7 @@ def recognize_main(im, learn_unrecognized_item):
     # logger.logimage(operation_id)
     operation_id = imgops.enhance_contrast(operation_id, 80, 220)
     logger.logimage(operation_id)
-    operation_id_str = do_tag_ocr(np.asarray(operation_id))
+    operation_id_str = do_tag_ocr(np.asarray(operation_id), model_name='chars_end')
     logger.logtext('operation_id_str ' + operation_id_str)
     # operation_name = lower.crop((0, 14.074*vh, 23.611*vh, 20*vh)).convert('L')
     # operation_name = imgops.enhance_contrast(imgops.crop_blackedge(operation_name))
