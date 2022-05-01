@@ -57,6 +57,13 @@ def format_recoresult(recoresult):
     return result
 
 
+def _apply_ratio(point, ratio):
+    x, y = point
+    x = x // ratio
+    y = y // ratio
+    return x, y
+
+
 class ArknightsHelper(object):
     def __init__(self, adb_host=None, device_connector=None, frontend=None):  # 当前绑定到的设备
         self.adb = None
@@ -563,6 +570,9 @@ class ArknightsHelper(object):
                 self.__wait(1)
                 continue
             retry_count += 1
+            if retry_count == 1:
+                vw, vh = imgreco.util.get_vwvh(self.viewport)
+                self.tap_rect((2.222 * vh, 1.944 * vh, 22.361 * vh, 8.333 * vh))
             if retry_count > max_retry:
                 raise RuntimeError('未知画面')
             logger.info('未知画面，尝试重新识别 {}/{} 次'.format(retry_count, max_retry))
@@ -1020,13 +1030,21 @@ class ArknightsHelper(object):
                     logger.info('停止录制...')
                     break
                 else:
-                    # todo 处理屏幕滑动
-                    continue
+                    start_point, end_point = point_list[0], point_list[-1]
+                    factor = (end_point[0] - start_point[0], end_point[1] - start_point[1])
+                    record = {'start_point': start_point, 'type': 'swipe', 'factor': factor,
+                              'wait_seconds_after_touch': wait_seconds_after_touch,
+                              'repeat': 1, 'raise_exception': True}
+                    logger.info(f'record: {record}')
+                    records.append(record)
+                    if wait_seconds_after_touch:
+                        logger.info(f'请等待 {wait_seconds_after_touch}s...')
+                        self.__wait(wait_seconds_after_touch)
+                    logger.info('继续...')
         with open(os.path.join(record_dir, f'record.json'), 'w', encoding='utf-8') as f:
             json.dump(record_data, f, ensure_ascii=False, indent=4, sort_keys=True)
 
     def replay_custom_record(self, record_name, mode=None, back_to_main=None, quiet=False):
-        from PIL import Image
         record_dir = os.path.join(os.path.realpath(os.path.join(__file__, '../../')),
                                   os.path.join('custom_record/', record_name))
         if not os.path.exists(record_dir):
@@ -1051,40 +1069,56 @@ class ArknightsHelper(object):
         x, y = 0, 0
         for record in records:
             if record['type'] == 'tap':
-                repeat = record.get('repeat', 1)
-                raise_exception = record.get('raise_exception', True)
-                threshold = record.get('threshold', 0.7)
-                for _ in range(repeat):
-                    if mode == 'match_template':
-                        screen = self.adb.screenshot()
-                        gray_screen = screen.convert('L')
-                        if ratio != 1:
-                            gray_screen = gray_screen.resize((int(self.viewport[0] * ratio), record_height))
-                        template = Image.open(os.path.join(record_dir, record['img'])).convert('L')
-                        (x, y), r = imgreco.imgops.match_template(gray_screen, template)
-                        x = x // ratio
-                        y = y // ratio
+                self._do_record_tap(record, mode, ratio, record_height, record_dir, quiet, record_name, record_data)
+            elif record['type'] == 'swipe':
+                self._do_record_swipe(record, ratio, record_data)
+
+    def _do_record_swipe(self, record, ratio, record_data):
+        assert record_data['screen_width'] == int(self.viewport[0] * ratio)
+        start_point = _apply_ratio(record['start_point'], ratio)
+        factor = _apply_ratio(record['factor'], ratio)
+        for _ in range(record['repeat']):
+            logger.info(f'swipe: {record}')
+            self.adb.touch_swipe2(start_point, factor, randint(600, 900))
+            if record['wait_seconds_after_touch']:
+                self.__wait(record['wait_seconds_after_touch'])
+
+    def _do_record_tap(self, record, mode, ratio, record_height, record_dir, quiet, record_name, record_data):
+        from PIL import Image
+        repeat = record.get('repeat', 1)
+        raise_exception = record.get('raise_exception', True)
+        threshold = record.get('threshold', 0.7)
+        for _ in range(repeat):
+            if mode == 'match_template':
+                screen = self.adb.screenshot()
+                gray_screen = screen.convert('L')
+                if ratio != 1:
+                    gray_screen = gray_screen.resize((int(self.viewport[0] * ratio), record_height))
+                template = Image.open(os.path.join(record_dir, record['img'])).convert('L')
+                (x, y), r = imgreco.imgops.match_template(gray_screen, template)
+                x = x // ratio
+                y = y // ratio
+                if quiet:
+                    logger.debug(f'(x, y), r, record, record_name: {(x, y), r, record, record_name}')
+                else:
+                    logger.info(f'(x, y), r, record, record_name: {(x, y), r, record, record_name}')
+                if r < threshold:
+                    if raise_exception:
                         if quiet:
-                            logger.debug(f'(x, y), r, record, record_name: {(x, y), r, record, record_name}')
+                            logger.debug('无法识别的图像: ' + record['img'])
                         else:
-                            logger.info(f'(x, y), r, record, record_name: {(x, y), r, record, record_name}')
-                        if r < threshold:
-                            if raise_exception:
-                                if quiet:
-                                    logger.debug('无法识别的图像: ' + record['img'])
-                                else:
-                                    logger.error('无法识别的图像: ' + record['img'])
-                                raise RuntimeError('无法识别的图像: ' + record['img'])
-                            break
-                    elif mode == 'point':
-                        # 这个模式屏幕尺寸宽高比必须与记录中的保持一至
-                        assert record_data['screen_width'] == int(self.viewport[0] * ratio)
-                        x, y = record['point']
-                        x = x // ratio
-                        y = y // ratio
-                    self.adb.touch_tap((x, y), offsets=(5, 5))
-                    if record.get('wait_seconds_after_touch'):
-                        self.__wait(record['wait_seconds_after_touch'])
+                            logger.error('无法识别的图像: ' + record['img'])
+                        raise RuntimeError('无法识别的图像: ' + record['img'])
+                    break
+            elif mode == 'point':
+                # 这个模式屏幕尺寸宽高比必须与记录中的保持一至
+                assert record_data['screen_width'] == int(self.viewport[0] * ratio)
+                x, y = record['point']
+                x = x // ratio
+                y = y // ratio
+            self.adb.touch_tap((x, y), offsets=(5, 5))
+            if record.get('wait_seconds_after_touch'):
+                self.__wait(record['wait_seconds_after_touch'])
 
     def try_replay_record(self, record_name, quiet=False):
         try:
