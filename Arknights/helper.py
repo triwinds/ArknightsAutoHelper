@@ -837,7 +837,7 @@ class ArknightsHelper(object):
             logger.info('选择类别')
             self.tap_rect(imgreco.map.get_daily_menu_entry(self.viewport, path[0]))
             self.find_and_tap_daily(path[0], path[1])
-            self.find_and_tap(path[1], path[2])
+            self.find_and_tap_stage_by_ocr(path[1], path[2])
         else:
             raise NotImplementedError()
 

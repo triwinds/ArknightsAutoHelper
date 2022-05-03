@@ -80,16 +80,10 @@ def initialize():
 
 
     # materials
-    material1 = vec(0, 0)
-    material2 = material1 + vec(277, -50)
-    material3 = material1 + vec(477, -165)
-    material4 = material1 + vec(643, -279)
-    material5 = material1 + vec(743, -394)
     for prefix in ['LS', 'AP', 'CA', 'CE', 'SK']:
-        stage_maps[prefix] = {prefix + '-1': material1, prefix + '-2': material2, prefix + '-3': material3,
-                              prefix + '-4': material4, prefix + '-5': material5}
-        map_anchors[prefix] = [prefix + '-1']
-        stage_maps_linear[prefix] = stage_maps[prefix].keys()
+        stage_maps_linear[prefix] = [f'{prefix}-{i}' for i in range(1, 6)]
+    stage_maps_linear['CE'].append('CE-6')
+    stage_maps_linear['LS'].append('LS-6')
 
     # socs
     for infix in 'ABCD':
