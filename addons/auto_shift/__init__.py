@@ -12,7 +12,8 @@ from Arknights.helper import logger
 from addons.base import BaseAddOn
 from addons.common_cache import load_game_data
 from imgreco import util
-from imgreco.ocr.ppocr import search_in_list
+from imgreco.ocr.ppocr import search_in_list, ocr
+from imgreco.stage_ocr import do_tag_ocr
 
 
 def open_img(name, mode=cv2.IMREAD_GRAYSCALE):
@@ -247,7 +248,7 @@ class AutoShiftAddOn(BaseAddOn):
         self.vw, self.vh = util.get_vwvh(self.helper.viewport)
 
     def run(self, force_run=False):
-        shift_hours = 6
+        shift_hours = 3
         current_shift_info = {'current_shift_index': 0, 'time': 0}
         if os.path.exists(current_shift_file):
             with open(current_shift_file, 'r') as f:
@@ -495,32 +496,76 @@ class AutoShiftAddOn(BaseAddOn):
         self.helper.tap_rect((100 * vw - 47.083 * vh, 80.278 * vh, 100 * vw - 21.806 * vh, 93.750 * vh))
         time.sleep(5)
 
+    def get_drones(self):
+        vw, vh = self.vw, self.vh
+        screen = self.screenshot()
+        drones_img = np.asarray(screen.crop((100*vw-71.806*vh, 3.194*vh, 100*vw-61.806*vh, 6.667*vh)).convert('L'))
+        drones_img = cv2.threshold(drones_img, 155, 255, cv2.THRESH_BINARY)[1]
+        drones = do_tag_ocr(drones_img, noise_size=2)
+        logger.info(f'drones: {drones}')
+        if drones.isdigit():
+            return int(drones)
+
+    def get_current_room_name(self):
+        vw, vh = self.vw, self.vh
+        screen = self.screenshot()
+        room_tag = cvt2cv(screen.crop((58.750*vh, 2.778*vh, 80.139*vh, 7.639*vh)))
+        res = ocr.ocr_single_line(room_tag)
+        if res:
+            return res[0]
+
     def clear_drones(self, room):
         logger.info('clear drones...')
         self.goto_building()
+        if self.get_drones() == 0:
+            logger.info('no drones to clear')
+            return
         self.open_room(room)
+        current_room_name = self.get_current_room_name()
+        logger.info(f'current room name: {current_room_name}')
+        if '制造站' in current_room_name:
+            self.clear_drones_in_manufacturing_station()
+        elif '贸易站' in current_room_name:
+            self.clear_drones_in_trade_station()
+        else:
+            logger.error(f'unknown room type: {current_room_name}')
+
+    def clear_drones_in_manufacturing_station(self):
+        logger.info('clear drones in manufacturing station.')
         self.helper.try_replay_record('clear_drones2', quiet=True)
         time.sleep(5)
         logger.info('set product to max...')
         self.helper.try_replay_record('set_product_to_max', quiet=True)
 
+    def clear_drones_in_trade_station(self):
+        logger.info('clear drones in trade station.')
+        vw, vh = self.vw, self.vh
+        self.helper.tap_rect((3.611*vh, 76.667*vh, 74.306*vh, 96.667*vh))
+        while self.helper.try_replay_record('clear_drones_in_trade_station', quiet=True):
+            if self.get_drones() == 0:
+                logger.info('no drones to clear')
+                return
 
-def check_diff_ops(shift1, shift2):
-    with open(shift1, 'r', encoding='utf-8') as f:
-        s1 = json.load(f)
-    with open(shift2, 'r', encoding='utf-8') as f:
+
+def check_diff_ops(old_shifts, new_shift):
+    old_set = set()
+    for shift in old_shifts:
+        with open(shift, 'r', encoding='utf-8') as f:
+            s1 = json.load(f)
+            old_set.update([x for k in s1 for x in s1[k]])
+    with open(new_shift, 'r', encoding='utf-8') as f:
         s2 = json.load(f)
-    set1 = set([x for k in s1 for x in s1[k]])
-    set2 = set([x for k in s2 for x in s2[k]])
-    print('set1 - set2: ', set1 - set2)
-    print('set2 - set1: ', set2 - set1)
+    new_set = set([x for k in s2 for x in s2[k]])
+    print('new_set - old_set:', new_set - old_set)
 
 
 if __name__ == '__main__':
-    AutoShiftAddOn().dump_current_shift(exclude_room={'control_room', 'b105', 'b305', 'b401'})
-    # AutoShiftAddOn().apply_shift('saved_shift/shift2_cache.json')
+    # AutoShiftAddOn().dump_current_shift(exclude_room={'control_room', 'b105', 'b305', 'b401'})
+    # AutoShiftAddOn().apply_shift('shift000')
     # print(AutoShiftAddOn().get_all_op_on_screen())
     # AutoShiftAddOn().run()
     # AutoShiftAddOn().get_all_op_on_screen()
-    # AutoShiftAddOn().clear_drones('b302')
-    # check_diff_ops('saved_shift/shift000_cache.json', 'saved_shift/shift002_cache.json')
+    AutoShiftAddOn().clear_drones('b201')
+    # AutoShiftAddOn().get_drones()
+    # AutoShiftAddOn().get_current_room_name()
+    # check_diff_ops(['saved_shift/shift001_cache.json', 'saved_shift/shift002_cache.json', 'saved_shift/shift003_cache.json'], 'saved_shift/shift000_cache.json')

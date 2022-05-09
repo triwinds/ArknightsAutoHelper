@@ -1,0 +1,45 @@
+{
+    "back_to_main": false,
+    "description": "clear_drones_in_trade_station",
+    "prefer_mode": "match_template",
+    "records": [
+        {
+            "img": "step0.png",
+            "point": [
+                580,
+                498
+            ],
+            "raise_exception": true,
+            "repeat": 1,
+            "threshold": 0.94,
+            "type": "tap",
+            "wait_seconds_after_touch": 1
+        },
+        {
+            "img": "step1.png",
+            "point": [
+                975,
+                334
+            ],
+            "raise_exception": true,
+            "repeat": 1,
+            "threshold": 0.94,
+            "type": "tap",
+            "wait_seconds_after_touch": 1
+        },
+        {
+            "img": "step2.png",
+            "point": [
+                937,
+                586
+            ],
+            "raise_exception": true,
+            "repeat": 1,
+            "threshold": 0.94,
+            "type": "tap",
+            "wait_seconds_after_touch": 3
+        }
+    ],
+    "screen_height": 720,
+    "screen_width": 1280
+}

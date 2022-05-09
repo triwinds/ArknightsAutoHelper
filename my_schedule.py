@@ -74,11 +74,13 @@ def clear_sanity_by_item(only_activity=False):
             AutoChips().run()
             return
 
-    AutoChips().run()
+    # AutoChips().run()
     # from addons.grass_on_aog import GrassAddOn
     # GrassAddOn().run()
     helper = ArknightsHelper()
-    helper.module_battle('1-7')
+    # helper.module_battle('1-7')
+    helper.replay_custom_record('open_sn_9')
+    helper.module_battle_slim(None, 1000)
 
 
 def send_by_tg_bot(chat_id, title, content):
