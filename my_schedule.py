@@ -42,12 +42,12 @@ def clear_sanity():
     if wd in red_ticket_day and grab_red_ticket:
         clear_sanity_by_item(True)
         clear_sanity_by_red_ticket()
-    # elif wd == 1:
-    #     logger.info('clear_sanity_by_jiaomie')
-    #     import jiaomie
-    #     if not jiaomie.main():
-    #         # 剿灭刷完就刷材料
-    #         clear_sanity_by_item()
+    elif wd == 1:
+        logger.info('clear_sanity_by_jiaomie')
+        from addons.auto_jiaomie import AutoJiaomieAddOn
+        if not AutoJiaomieAddOn().run():
+            # 剿灭刷完就刷材料
+            clear_sanity_by_item()
     else:
         clear_sanity_by_item()
 
