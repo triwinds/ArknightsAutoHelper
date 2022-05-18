@@ -53,7 +53,7 @@ def get_total_credit(pil_screen):
     rect = tuple(map(int, (100*vw-20.139*vh, 3.333*vh, 100*vw-2.361*vh, 7.500*vh)))
     credit_img = cv2.cvtColor(np.asarray(pil_screen.crop(rect)), cv2.COLOR_BGR2RGB)
     credit_img = cv2.cvtColor(credit_img, cv2.COLOR_RGB2GRAY)
-    credit_img = cv2.threshold(credit_img, 180, 255, cv2.THRESH_BINARY)[1]
+    credit_img = cv2.threshold(credit_img, 140, 255, cv2.THRESH_BINARY)[1]
     return int(do_tag_ocr(credit_img, 1))
 
 

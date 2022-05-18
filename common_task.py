@@ -42,7 +42,7 @@ def main():
     logger.info('===基建收菜')
     helper.try_replay_record('get_building')
     logger.info('===清空无人机')
-    AutoShiftAddOn(helper).clear_drones('b201')
+    AutoShiftAddOn(helper).clear_drones('b302')
     AutoRecruitAddOn(helper).hire_all()
 
     helper.clear_task()

@@ -57,7 +57,7 @@ def recognize(img):
     if opidtext.endswith('-'):
         opidtext = opidtext[:-1]
     opidtext = opidtext.upper()
-    logger.logtext(opidtext)
+    logger.logtext(f'opidtext={opidtext}')
     fixup, opidtext = minireco.fix_stage_name(opidtext)
     if fixup:
         logger.logtext('fixed to ' + opidtext)
@@ -70,7 +70,11 @@ def recognize(img):
     delegated = max_val > 0.9
     logger.logtext('delegated: %s' % delegated)
 
-    max_val, max_loc = _find_template2(consume_icon, common.convert_to_cv(img, cv2.COLOR_BGR2GRAY), scale)
+    gray_img = common.convert_to_cv(img.crop((100*vw-30.417*vh, 81.806*vh, 100*vw-1.528*vh, 99.861*vh)),
+                                    cv2.COLOR_BGR2GRAY)
+    max_val, max_loc = _find_template2(consume_icon, gray_img, scale)
+    max_loc = max_loc[0] + 100*vw-30.417*vh, max_loc[1] + 81.806*vh
+    logger.logtext(f'consume_icon: {max_val, max_loc}')
     consume_rect = list(map(int, (max_loc[0] + 4.863*vh, max_loc[1], max_loc[0] + 12.5*vh, max_loc[1] + 3.333*vh)))
     start_rect = list(map(int, (max_loc[0], max_loc[1] - 4.58*vh, max_loc[0] + 12.5 * vh, max_loc[1] + 3.333 * vh)))
     delegate_button_rect = list(map(int, (max_loc[0], max_loc[1] - 13.194 * vh, max_loc[0] + 12.5 * vh, max_loc[1] - 12.9 * vh)))

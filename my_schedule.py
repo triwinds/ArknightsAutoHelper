@@ -14,6 +14,7 @@ from Arknights.helper import ArknightsHelper, logger
 from addons.auto_chips import AutoChips
 from addons.restart_mumu import restart_all
 from imgreco.item import update_net
+from util.requests import proxies
 
 
 def is_in_event():
@@ -78,14 +79,12 @@ def clear_sanity_by_item(only_activity=False):
     # from addons.grass_on_aog import GrassAddOn
     # GrassAddOn().run()
     helper = ArknightsHelper()
-    # helper.module_battle('1-7')
-    helper.replay_custom_record('open_sn_9')
-    helper.module_battle_slim(None, 1000)
+    helper.module_battle('1-7')
 
 
 def send_by_tg_bot(chat_id, title, content):
     # @shadowfox_MsgCat_bot
-    result = requests.post('https://msgcat.shadowfox.workers.dev/sendMsg',
+    result = requests.post('https://msgcat.shadowfox.workers.dev/sendMsg', proxies=proxies,
                            json={'chatId': chat_id, 'title': title, 'content': content})
     return result
 
