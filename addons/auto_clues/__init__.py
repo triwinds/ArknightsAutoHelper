@@ -1,3 +1,4 @@
+import json
 import os
 import time
 
@@ -6,7 +7,7 @@ import numpy as np
 
 from Arknights.helper import logger
 from addons.base import BaseAddOn, _find_template2
-from imgreco.common import convert_to_cv, crop_screen_by_rect
+from imgreco.common import convert_to_cv, crop_screen_by_rect, crop_image_only_outside
 from imgreco.ocr.ppocr import ocr as ppocr
 from imgreco.stage_ocr import predict_char_images, crop_char_img
 from util.richlog import get_logger
@@ -62,6 +63,29 @@ friend_clue_img = open_img('friend_clue.png')
 give_clue_img = open_img('give_clue.png')
 send_clue_img = open_img('send_clue.png')
 unlock_clue_img = open_img('unlock_clue.png')
+
+friend_record_file = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'friend_record.json')
+
+
+def load_friend_record():
+    if not os.path.exists(friend_record_file):
+        open(friend_record_file, 'w', encoding='utf-8').close()
+        return {}
+    with open(friend_record_file, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+def save_friend_record(friend_record):
+    with open(friend_record_file, 'w', encoding='utf-8') as f:
+        json.dump(friend_record, f, ensure_ascii=False, indent=4)
+
+
+def add_receive_record(friend_name):
+    records = load_friend_record()
+    record = records.get(friend_name, {'receive': 0, 'send': 0})
+    record['receive'] += 1
+    records[friend_name] = record
+    save_friend_record(records)
 
 
 def _has_new_clue(pos, cv_screen, scale):
@@ -230,10 +254,15 @@ class AutoClueAddOn(BaseAddOn):
             return
         max_val, max_loc = _find_template2(clock_img, clues_area_img, scale)
         if max_val > 0.7:
-            pos = (max_loc[0] + 100 * vw - 60.000 * vh + 30, max_loc[1] - 60)
+            pos = (int(max_loc[0] + 100 * vw - 60.000 * vh + 30), int(max_loc[1] - 60))
             logger.info(f'use time limit clue {pos}.')
             self.click(pos)
-            # self.tap_bottom()
+            name_tag = ~clues_area_img[max_loc[1] - 80: max_loc[1] - 55, max_loc[0] + 174: max_loc[0] + 374]
+            # cv2.rectangle(clues_area_img, (max_loc[0] + 174, max_loc[1] - 80), (max_loc[0] + 374, max_loc[1] - 55), 0, 2)
+            name_tag = crop_image_only_outside(name_tag, name_tag)
+            clue_send_from = ppocr.ocr_single_line(cv2.cvtColor(name_tag, cv2.COLOR_GRAY2RGB))[0]
+            logger.info(f'use clue send from {clue_send_from}.')
+            add_receive_record(clue_send_from)
         else:
             logger.info('use first clue.')
             vh, vw = self.vh, self.vw
@@ -300,7 +329,7 @@ class AutoClueAddOn(BaseAddOn):
 
 
 if __name__ == '__main__':
-    # AutoClueAddOn().run()
+    AutoClueAddOn().run()
     # AutoClueAddOn().scan_empty_slot()
-    AutoClueAddOn().send_clue()
+    # AutoClueAddOn().apply_clue()
 

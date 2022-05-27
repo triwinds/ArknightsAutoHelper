@@ -138,6 +138,16 @@ def crop_screen_by_rect(cv_screen, rect):
     return cv_screen[int(rect[1]):int(rect[3]), int(rect[0]):int(rect[2])]
 
 
+def crop_image_only_outside(gray_img, raw_img, threshold=128, padding=3):
+    mask = gray_img > threshold
+    m, n = gray_img.shape
+    mask0, mask1 = mask.any(0), mask.any(1)
+    col_start, col_end = mask0.argmax(), n - mask0[::-1].argmax()
+    row_start, row_end = mask1.argmax(), m - mask1[::-1].argmax()
+    return raw_img[max(0, row_start - padding):min(m, row_end + padding),
+           max(0, col_start - padding):min(n, col_end + padding)]
+
+
 if __name__ == "__main__":
     import sys
 
