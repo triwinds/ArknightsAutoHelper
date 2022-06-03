@@ -166,6 +166,8 @@ def detect_box(screen, target_name):
         if score > max_score:
             max_score = score
             max_res = res
+    if not max_res:
+        return None, 0
     box_center = calc_box_center(max_res.box)
     cv2.drawContours(dbg_screen, [np.asarray(max_res.box, dtype=np.int32)], 0, (0, 255, 0), 2)
     cv2.circle(dbg_screen, box_center, 4, (0, 0, 255), -1)
@@ -271,4 +273,4 @@ class ActivityAddOn(BaseAddOn):
 
 if __name__ == '__main__':
     addon = ActivityAddOn()
-    addon.run('wd-8', 0)
+    addon.run('sv-8', 0)
