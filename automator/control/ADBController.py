@@ -413,10 +413,10 @@ class ADBController:
     def screenshot(self, cached: bool = True) -> cvimage.Image:
         rate_limit = app.config.device.screenshot_rate_limit
         if rate_limit == 0:
-            return self._screenshot_adapter.screenshot()
+            return self._screenshot_adapter.screenshot().convert('BGR')
         t0 = time.perf_counter()
         if not cached or self._last_screenshot is None or t0 > self._last_screenshot_expire:
-            self._last_screenshot = self._screenshot_adapter.screenshot()
+            self._last_screenshot = self._screenshot_adapter.screenshot().convert('BGR')
             t1 = time.perf_counter()
             if rate_limit == -1:
                 self._last_screenshot_expire = t1 + (t1 - t0)
