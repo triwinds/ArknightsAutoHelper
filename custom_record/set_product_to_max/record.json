@@ -1,0 +1,33 @@
+{
+    "back_to_main": false,
+    "description": "set_product_to_max",
+    "prefer_mode": "match_template",
+    "records": [
+        {
+            "img": "step0.png",
+            "point": [
+                973,
+                204
+            ],
+            "raise_exception": true,
+            "repeat": 1,
+            "threshold": 0.95,
+            "type": "tap",
+            "wait_seconds_after_touch": 2
+        },
+        {
+            "img": "step1.png",
+            "point": [
+                949,
+                600
+            ],
+            "raise_exception": true,
+            "repeat": 1,
+            "threshold": 0.95,
+            "type": "tap",
+            "wait_seconds_after_touch": 2
+        }
+    ],
+    "screen_height": 720,
+    "screen_width": 1280
+}
