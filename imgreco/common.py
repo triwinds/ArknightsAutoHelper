@@ -134,6 +134,32 @@ def convert_to_cv(pil_img, color_code=cv2.COLOR_BGR2RGB):
     return cv2.cvtColor(np.asarray(pil_img), color_code)
 
 
+def crop_image_only_outside(gray_img, raw_img, threshold=128, padding=3):
+    mask = gray_img > threshold
+    m, n = gray_img.shape
+    mask0, mask1 = mask.any(0), mask.any(1)
+    col_start, col_end = mask0.argmax(), n - mask0[::-1].argmax()
+    row_start, row_end = mask1.argmax(), m - mask1[::-1].argmax()
+    return raw_img[max(0, row_start - padding):min(m, row_end + padding),
+                   max(0, col_start - padding):min(n, col_end + padding)]
+
+
+def test_color(c1, c2, channel=3, diff=10):
+    for i in range(channel):
+        if abs(c1[i] - c2[i]) > diff:
+            return False
+    return True
+
+
+def has_color(img, color, channel=3, diff=10):
+    h, w = img.shape[:2]
+    for y in range(h):
+        for x in range(w):
+            if test_color(img[y][x], color, channel, diff):
+                return True
+    return False
+
+
 def softmax(x):
     """Compute softmax values for each sets of scores in x."""
     e_x = np.exp(x - np.max(x))
@@ -191,7 +217,7 @@ class RoiMatchingMixin:
     def load_roi(self, name: str, mode: str = 'RGB') -> RegionOfInterest:
         roi = resources.load_roi(name, mode)
         return self._localize_roi(roi)
-    
+
     def _localize_roi(self, roi: RegionOfInterest):
         return roi.with_target_viewport(*self.viewport)
 

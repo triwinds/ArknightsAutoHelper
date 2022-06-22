@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 from ppocronnx.predict_system import TextSystem
 
+from Arknights.addons.contrib.base import crop_cv_by_rect
 from Arknights.addons.contrib.common_cache import load_game_data
 from automator import AddonBase
 from imgreco.ocr.ppocr import search_in_list, ocr
@@ -109,10 +110,6 @@ def get_circles(gray_img, min_radius=8, max_radius=11):
 def show_img(img):
     cv2.imshow('test', img)
     cv2.waitKey()
-
-
-def crop_screen_by_rect(cv_screen, rect):
-    return cv_screen[int(rect[1]):int(rect[3]), int(rect[0]):int(rect[2])]
 
 
 def ocr_tag(tag, white_threshold=130):
@@ -337,7 +334,7 @@ class AutoShiftAddOn(AddonBase):
 
     def get_op_sanity(self, cv_screen):
         vw, vh = self.vw, self.vh
-        sanity_tag = crop_screen_by_rect(cv_screen, (42.639 * vh, 13.194 * vh, 52.083 * vh, 17.361 * vh))
+        sanity_tag = crop_cv_by_rect(cv_screen, (42.639 * vh, 13.194 * vh, 52.083 * vh, 17.361 * vh))
         return ocr_tag(sanity_tag, 150)
 
     def _test_img(self, template, threshold=0.9):

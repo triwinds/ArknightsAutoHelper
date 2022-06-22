@@ -1,0 +1,33 @@
+{
+    "back_to_main": true,
+    "description": "goto_meeting_room",
+    "prefer_mode": "match_template",
+    "records": [
+        {
+            "img": "step0.png",
+            "point": [
+                970,
+                607
+            ],
+            "raise_exception": true,
+            "repeat": 1,
+            "threshold": 0.7,
+            "type": "tap",
+            "wait_seconds_after_touch": 5
+        },
+        {
+            "img": "step1.png",
+            "point": [
+                1169,
+                196
+            ],
+            "raise_exception": true,
+            "repeat": 1,
+            "threshold": 0.7,
+            "type": "tap",
+            "wait_seconds_after_touch": 5
+        }
+    ],
+    "screen_height": 720,
+    "screen_width": 1280
+}
