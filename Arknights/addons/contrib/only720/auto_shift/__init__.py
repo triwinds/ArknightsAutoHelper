@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import random
 import re
@@ -13,8 +14,6 @@ from Arknights.addons.contrib.common_cache import load_game_data
 from automator import AddonBase
 from imgreco.ocr.ppocr import search_in_list, ocr
 from imgreco.stage_ocr import do_tag_ocr
-import logging
-
 
 logger = logging.getLogger(__name__)
 
@@ -352,7 +351,7 @@ class AutoShiftAddOn(AddonBase):
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
         # print(max_loc)
         if max_val > 0.9:
-            self.click(max_loc)
+            self.tap_point(max_loc)
 
     def is_in_overview(self):
         return self._test_img(overview_test_img)
@@ -379,11 +378,11 @@ class AutoShiftAddOn(AddonBase):
         return [op_info for op_info in infos if op_info['on_shift']]
 
     def __swipe_screen(self, move, rand=100, origin_x=None, origin_y=None, duration=None):
-        origin_x = (origin_x or self.helper.viewport[0] // 2) + random.randint(-rand, rand)
-        origin_y = (origin_y or self.helper.viewport[1] // 2) + random.randint(-rand, rand)
+        origin_x = (origin_x or self.viewport[0] // 2) + random.randint(-rand, rand)
+        origin_y = (origin_y or self.viewport[1] // 2) + random.randint(-rand, rand)
         if duration is None:
             duration = random.randint(600, 900)
-        self.helper.adb.touch_swipe2((origin_x, origin_y), (move, random.randint(-50, 50)), duration)
+        self.helper.control.touch_swipe2((origin_x, origin_y), (move, random.randint(-50, 50)), duration)
 
     def dump_current_shift(self, shift_name: str = None, choose_room: set = None, exclude_room={'b105', 'b305'}):
         res = {}
@@ -435,7 +434,7 @@ class AutoShiftAddOn(AddonBase):
                         if not op_info['on_shift']:
                             logger.info(f"choose {op_info['op_name']}")
                             x, y = op_info['pos']
-                            self.click((x + 50, y - 100), 0.5)
+                            self.tap_point((x + 50, y - 100), 0.5)
                         else:
                             logger.info(f"{op_info['op_name']} is already in shift.")
                         ops.remove(op_info['op_name'])
@@ -443,10 +442,10 @@ class AutoShiftAddOn(AddonBase):
                     break
                 else:
                     scroll_flag = True
-                    move = -random.randint(self.helper.viewport[0] // 4, self.helper.viewport[0] // 3)
-                    self.__swipe_screen(move, 50, self.helper.viewport[0] // 3 * 2)
-                    self.helper.adb.touch_swipe2((self.helper.viewport[0] // 2,
-                                                  self.helper.viewport[1] - 50), (1, 1), 10)
+                    move = -random.randint(self.viewport[0] // 4, self.viewport[0] // 3)
+                    self.__swipe_screen(move, 50, self.viewport[0] // 3 * 2)
+                    self.helper.control.touch_swipe2((self.viewport[0] // 2,
+                                                      self.viewport[1] - 50), (1, 1), 10)
                 if last_ops == cur_ops:
                     if rc > 1:
                         logger.error(f'apply room {room} fail, rest ops: {ops}')
@@ -472,7 +471,7 @@ class AutoShiftAddOn(AddonBase):
         last_ops = set()
         while True:
             for _ in range(2):
-                move = random.randint(self.helper.viewport[0] // 3, self.helper.viewport[0] // 2)
+                move = random.randint(self.viewport[0] // 3, self.viewport[0] // 2)
                 self.__swipe_screen(move, 50, duration=random.randint(300, 500))
             self.delay(0.5)
             op_infos = self.get_all_op_on_screen()
@@ -558,10 +557,13 @@ if __name__ == '__main__':
     # AutoShiftAddOn().dump_current_shift(exclude_room={'control_room', 'b105', 'b305', 'b401'})
     # AutoShiftAddOn().apply_shift('shift000')
     # print(AutoShiftAddOn().get_all_op_on_screen())
-    from Arknights.configure_launcher import helper
-    print(helper.addon(AutoShiftAddOn).get_all_op_on_screen())
     # AutoShiftAddOn().get_all_op_on_screen()
     # AutoShiftAddOn().clear_drones('b201')
     # AutoShiftAddOn().get_drones()
     # AutoShiftAddOn().get_current_room_name()
     # check_diff_ops(['saved_shift/shift001_cache.json', 'saved_shift/shift002_cache.json', 'saved_shift/shift003_cache.json'], 'saved_shift/shift000_cache.json')
+
+    from Arknights.configure_launcher import helper
+
+    # print(helper.addon(AutoShiftAddOn).get_all_op_on_screen())
+    helper.addon(AutoShiftAddOn).run()

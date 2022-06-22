@@ -158,6 +158,7 @@ class AutoRecruitAddOn(OldMixin):
         self.auto_recruit(times)
 
     def clear_refresh(self):
+        logger.info('===清空公招刷新次数')
         self.goto_hr_page()
         used_slot = []
         for _ in range(4):
@@ -230,6 +231,7 @@ class AutoRecruitAddOn(OldMixin):
         return True
 
     def auto_recruit(self, hire_num):
+        logger.info('===自动公招')
         self.goto_hr_page()
         used_slot = []
 
