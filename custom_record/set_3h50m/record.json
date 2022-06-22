@@ -1,0 +1,57 @@
+{
+    "back_to_main": false,
+    "description": "set_3h50m",
+    "prefer_mode": "point",
+    "records": [
+        {
+            "img": "step0.png",
+            "point": [
+                437,
+                148
+            ],
+            "raise_exception": true,
+            "repeat": 1,
+            "threshold": 0.7,
+            "type": "tap",
+            "wait_seconds_after_touch": 1
+        },
+        {
+            "img": "step1.png",
+            "point": [
+                458,
+                144
+            ],
+            "raise_exception": true,
+            "repeat": 1,
+            "threshold": 0.7,
+            "type": "tap",
+            "wait_seconds_after_touch": 1
+        },
+        {
+            "img": "step2.png",
+            "point": [
+                453,
+                148
+            ],
+            "raise_exception": true,
+            "repeat": 1,
+            "threshold": 0.7,
+            "type": "tap",
+            "wait_seconds_after_touch": 1
+        },
+        {
+            "img": "step3.png",
+            "point": [
+                610,
+                300
+            ],
+            "raise_exception": true,
+            "repeat": 1,
+            "threshold": 0.7,
+            "type": "tap",
+            "wait_seconds_after_touch": 1
+        }
+    ],
+    "screen_height": 720,
+    "screen_width": 1280
+}

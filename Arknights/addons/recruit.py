@@ -5,13 +5,23 @@ class RecruitAddon(AddonBase):
         import imgreco.recruit
         from . import recruit_calc
         self.logger.info('识别招募标签')
-        tags = imgreco.recruit.get_recruit_tags(self.control.screenshot())
+        tags = imgreco.recruit.get_recruit_tags(self.screenshot())
         self.logger.info('可选标签：%s', ' '.join(tags))
         if len(tags) != 5:
             self.logger.warning('识别到的标签数量异常，一共识别了%d个标签', len(tags))
         result = recruit_calc.calculate(tags)
         self.logger.debug('计算结果：%s', repr(result))
         return result
+
+    def recruit_with_rect(self):
+        import imgreco.recruit
+        from . import recruit_calc
+        self.logger.info('识别招募标签')
+        tags_map = imgreco.recruit.get_recruit_tags_with_rect(self.screenshot())
+        self.logger.info('可选标签：%s', ' '.join(tags_map.keys()))
+        results = recruit_calc.calculate(tags_map.keys())
+        self.logger.debug('计算结果：%s', repr(results))
+        return results, tags_map
 
     @cli_command('recruit')
     def cli_recruit(self, argv):
