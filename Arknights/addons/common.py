@@ -1,15 +1,16 @@
 from automator import AddonBase
-from Arknights.flags import *
+
 
 class CommonAddon(AddonBase):
     alias = "common"
     def back_to_main(self, extra_predicate=None):  # 回到主页
         import imgreco.common
         import imgreco.main
+        shortcut_flag = False
         if extra_predicate is None:
             self.logger.info("正在返回主页")
             from Arknights.addons.record import RecordAddon
-            self.addon(RecordAddon).try_replay_record('back_to_main', quiet=True)
+            shortcut_flag = self.addon(RecordAddon).try_replay_record('back_to_main', quiet=True)
         else:
             self.logger.info("返回上层")
         retry_count = 0
@@ -22,6 +23,9 @@ class CommonAddon(AddonBase):
                 return
 
             if imgreco.main.check_main(screenshot):
+                if shortcut_flag:
+                    # 有时候会卡一下加载
+                    self.delay(2)
                 break
 
             # 检查是否有返回按钮

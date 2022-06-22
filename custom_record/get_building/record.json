@@ -1,0 +1,69 @@
+{
+    "back_to_main": true,
+    "description": "基建收菜",
+    "prefer_mode": "match_template",
+    "records": [
+        {
+            "img": "step0.png",
+            "point": [
+                964,
+                620
+            ],
+            "raise_exception": true,
+            "repeat": 1,
+            "threshold": 0.7,
+            "type": "tap",
+            "wait_seconds_after_touch": 10
+        },
+        {
+            "img": "step1.png",
+            "point": [
+                1194,
+                97
+            ],
+            "raise_exception": true,
+            "repeat": 1,
+            "threshold": 0.8,
+            "type": "tap",
+            "wait_seconds_after_touch": 2
+        },
+        {
+            "img": "step2.png",
+            "point": [
+                249,
+                682
+            ],
+            "raise_exception": false,
+            "repeat": 1,
+            "threshold": 0.7,
+            "type": "tap",
+            "wait_seconds_after_touch": 3
+        },
+        {
+            "img": "step3.png",
+            "point": [
+                259,
+                681
+            ],
+            "raise_exception": false,
+            "repeat": 1,
+            "threshold": 0.7,
+            "type": "tap",
+            "wait_seconds_after_touch": 3
+        },
+        {
+            "img": "step4.png",
+            "point": [
+                259,
+                681
+            ],
+            "raise_exception": false,
+            "repeat": 1,
+            "threshold": 0.7,
+            "type": "tap",
+            "wait_seconds_after_touch": 3
+        }
+    ],
+    "screen_height": 720,
+    "screen_width": 1280
+}

@@ -12,6 +12,7 @@ textdistance==4.2.1
 dataclasses_json
 lz4
 ppocr-onnx
+apscheduler
 pywin32; sys_platform == 'win32'
 
 # webgui2
