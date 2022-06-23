@@ -1,10 +1,11 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from typing import Union
     from automator import BaseAutomator
 del TYPE_CHECKING
-import sys
 import os
 import time
 
@@ -49,8 +50,11 @@ class ShellNextFrontend:
         _ensure_device()
         return device
 
-def _create_helper(cls, use_status_line=True):
+def _create_helper(cls, use_status_line=True, reset_device=False):
+    global device
     frontend = ShellNextFrontend(use_status_line)
+    if reset_device:
+        device = None
     helper = cls(device_connector=device, frontend=frontend)
     if use_status_line:
         context = frontend.statusline
@@ -291,10 +295,10 @@ def match_cmd(first, avail_cmds):
         print("matched commands: " + ','.join(x[0] for x in targetcmd))
         return None
 
-def _configure(prompt, helper_class):
+def _configure(prompt, helper_class, reset_device=False):
     global prompt_prefix, helper, context
     prompt_prefix = prompt
-    helper, context = _create_helper(helper_class)
+    helper, context = _create_helper(helper_class, reset_device=reset_device)
     from .addon import _cli_registry
     addon_cmds = []
     for name, record in _cli_registry.items():

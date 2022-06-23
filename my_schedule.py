@@ -11,13 +11,14 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 import app
 import common_task
 from Arknights.addons.contrib.only720.auto_chips import AutoChips
+from Arknights.addons.contrib.only720.auto_jiaomie import AutoJiaomieAddOn
 from Arknights.addons.stage_navigator import StageNavigator
-from Arknights.configure_launcher import helper
+from Arknights.configure_launcher import reconnect_helper, get_helper
 from automator import BaseAutomator
 from imgreco.itemdb import update_net
 
 logger = logging.getLogger(__file__)
-helper: BaseAutomator = helper
+helper: BaseAutomator = None
 
 
 def do_jiaomie():
@@ -41,8 +42,7 @@ def clear_sanity():
         clear_sanity_by_red_ticket()
     elif wd == 1:
         logger.info('clear_sanity_by_jiaomie')
-        from addons.auto_jiaomie import AutoJiaomieAddOn
-        if not AutoJiaomieAddOn().run():
+        if not helper.addon(AutoJiaomieAddOn).run():
             # 剿灭刷完就刷材料
             clear_sanity_by_item()
     else:
@@ -82,24 +82,28 @@ def send_by_tg_bot(chat_id, title, content):
 
 
 def do_works():
+    global helper
     # 重启 adb server, 以免产生奇怪的 bug
     try:
         os.system('adb kill-server')
         os.system('adb connect 127.0.0.1:5555')
+        reconnect_helper()
+        helper = get_helper()
         update_net()
         logger.info(f'run schedule at {datetime.now()}')
         clear_sanity()
         common_task.main()
         logger.info(f'finish at: {datetime.now()}')
         time.sleep(60)
+
     except Exception as e:
         send_by_tg_bot(app.get('notify/chat_id'), 'arh-fail', traceback.format_exc())
         print(traceback.format_exc())
 
 
 def recruit():
-    from addons.auto_recruit import AutoRecruitAddOn
-    addon = AutoRecruitAddOn()
+    from Arknights.addons.contrib.only720.auto_recruit import AutoRecruitAddOn
+    addon = helper.addon(AutoRecruitAddOn)
     addon.hire_all()
     addon.auto_recruit(4)
 

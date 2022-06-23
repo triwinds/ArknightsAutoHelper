@@ -11,7 +11,7 @@ from Arknights.addons.contrib.only720.auto_recruit import AutoRecruitAddOn
 from Arknights.addons.contrib.only720.auto_shift import AutoShiftAddOn
 from Arknights.addons.quest import QuestAddon
 from Arknights.addons.record import RecordAddon
-from Arknights.configure_launcher import helper
+from Arknights.configure_launcher import get_helper
 from imgreco.itemdb import update_net
 
 logger = logging.getLogger(__file__)
@@ -41,6 +41,7 @@ def save_cache(task_cache):
 def main():
     print('do common task.')
     update_net()
+    helper = get_helper()
     task_cache = load_cache()
 
     logger.info('===基建收菜')
