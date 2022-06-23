@@ -8,6 +8,7 @@ if TYPE_CHECKING:
 del TYPE_CHECKING
 import os
 import time
+import sys
 
 import app
 
