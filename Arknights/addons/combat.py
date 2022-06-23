@@ -265,7 +265,7 @@ class OperationOnceStatemachine:
                 self.logger.error('未处理的对话框：[%s] %s', dlgtype, ocrresult)
                 raise RuntimeError('unhandled dialog')
 
-        self.logger.info('战斗未结束')
+        self.logger.log(finish_log_level, '战斗未结束')
 
     def on_level_up_popup(self, smobj):
         import imgreco.end_operation
