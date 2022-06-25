@@ -426,6 +426,7 @@ class AutoShiftAddOn(AddonBase):
             rc = 0
             scroll_flag = False
             while True:
+                self.delay(0.5)
                 op_infos = self.get_all_op_on_screen()
                 logger.debug(op_infos)
                 for op_info in op_infos:
@@ -565,5 +566,5 @@ if __name__ == '__main__':
 
     from Arknights.configure_launcher import helper
 
-    # print(helper.addon(AutoShiftAddOn).get_all_op_on_screen())
-    helper.addon(AutoShiftAddOn).run()
+    print(helper.addon(AutoShiftAddOn).get_all_op_on_screen())
+    # helper.addon(AutoShiftAddOn).run()

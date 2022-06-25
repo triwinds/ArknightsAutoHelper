@@ -86,7 +86,6 @@ def do_works():
     # 重启 adb server, 以免产生奇怪的 bug
     try:
         os.system('adb kill-server')
-        os.system('adb connect 127.0.0.1:5555')
         reconnect_helper()
         helper = get_helper()
         update_net()
