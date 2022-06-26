@@ -26,7 +26,7 @@ class PaddleOcr(OcrEngine):
         if image.mode != 'BGR':
             image = image.convert('BGR')
         cv_img = image.array
-        single_line_flag = image.height < 35 or image.width / 3 > image.height
+        single_line_flag = image.height < 35
         if hints is not None and OcrHint.SINGLE_LINE in hints:
             single_line_flag = True
         if single_line_flag:
