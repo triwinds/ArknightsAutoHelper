@@ -16,6 +16,7 @@ from Arknights.addons.stage_navigator import StageNavigator
 from Arknights.configure_launcher import reconnect_helper, get_helper
 from automator import BaseAutomator
 from imgreco.itemdb import update_net
+from Arknights.addons.contrib.restart_bluestacks import restart_all
 
 logger = logging.getLogger(__file__)
 helper: BaseAutomator = None
@@ -111,7 +112,7 @@ def main():
     do_works()
     scheduler = BlockingScheduler(timezone='Asia/Shanghai')
     # scheduler.add_job(recruit, 'cron', day_of_week='0,1,2', hour='19', minute=0)
-    # scheduler.add_job(restart_all, 'cron', day='*/2', hour=4, minute=5)
+    scheduler.add_job(restart_all, 'cron', day='*', hour=4, minute=5)
     scheduler.add_job(do_works, 'cron', hour='*/4', minute=15)
     scheduler.start()
 
