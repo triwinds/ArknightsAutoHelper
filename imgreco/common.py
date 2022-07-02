@@ -175,7 +175,7 @@ class RegionOfInterest:
     name: str
     template: Optional[Image.Image] = None
     mask: Optional[Image.Image] = None
-    bbox_matrix: Optional[np.matrix] = None
+    bbox_matrix: Optional[np.ndarray] = None
     native_resolution: Optional[tuple[int, int]] = None
     bbox: Optional[Image.Rect] = None
     matching_preference: dict = field(default_factory=dict)
@@ -185,7 +185,7 @@ class RegionOfInterest:
             return self
         vw = width / 100
         vh = height / 100
-        left, top, right, bottom = np.asarray(self.bbox_matrix * np.matrix(np.matrix([[vw], [vh], [1]]))).reshape(4)
+        left, top, right, bottom = np.matmul(self.bbox_matrix, np.asarray([[vw], [vh], [1]])).reshape(4)
         bbox = Image.Rect.from_ltrb(left, top, right, bottom)
         return RegionOfInterest(self.name, self.template, self.mask, self.bbox_matrix, self.native_resolution, bbox)
 

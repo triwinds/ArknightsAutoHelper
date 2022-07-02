@@ -151,7 +151,7 @@ def load_roi(basename, image_mode='RGB', metafile=None, imgfile=None) -> RegionO
     try:
         with open_file(metafile) as f:
             meta = json.load(f)
-        bbox_matrix = np.asmatrix(meta['bbox_matrix']) if 'bbox_matrix' in meta else None
+        bbox_matrix = np.asarray(meta['bbox_matrix']) if 'bbox_matrix' in meta else None
         native_resolution = tuple(meta['native_resolution']) if 'native_resolution' in meta else None
     except:
         bbox_matrix = None
