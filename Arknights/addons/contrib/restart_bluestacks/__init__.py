@@ -8,6 +8,8 @@ from imgreco.imgops import match_template
 from PIL import Image
 import os
 import logging
+
+from util import cvimage
 from util.richlog import get_logger
 
 
@@ -86,7 +88,7 @@ def retry_click_img(window, img, img_name):
         c += 1
         if c > max_retry:
             logger.logtext('fail img_name: ' + img_name)
-            logger.logimage(window.capture_as_image())
+            logger.logimage(cvimage.from_pil(window.capture_as_image()))
             # logger.logimage(BaseAddOn().screenshot())
             raise RuntimeError(f'Fail to click [{img_name}].')
         else:
