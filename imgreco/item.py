@@ -7,7 +7,7 @@ import numpy as np
 import cv2
 import json
 # from skimage.measure import compare_mse
-from util import cvimage as Image
+from util import cvimage as Image, cvimage
 import requests
 import os
 import logging
@@ -86,7 +86,7 @@ def all_known_items():
     return itemdb.resources_known_items.keys()
 
 
-def get_quantity(itemimg):
+def get_quantity_old(itemimg):
     richlogger = get_logger(__name__)
     numimg = imgops.scalecrop(itemimg, 0.39, 0.71, 0.82, 0.855).convert('L')
     numimg = imgops.crop_blackedge2(numimg, 120)
@@ -117,6 +117,72 @@ def get_quantity(itemimg):
             return int(qty_base * qty_scale)
         except:
             return None
+
+
+def crop_blackedge(numimg: Image, threshold=None):
+    if threshold is None:
+        threshold = 110
+    gap = int(numimg.height * 0.25)
+    # thr_img = cvimage.fromarray(cv2.threshold(numimg.array, threshold, 255, cv2.THRESH_BINARY)[1], 'L')
+    thr_img = numimg
+    x_max = thr_img.array[2:-1, :].max(axis=0)
+    left, right = 0, None
+    i = thr_img.width
+    while i > gap:
+        if np.max(x_max[i-gap:i]) < threshold:
+            if right is None:
+                right = i - np.argmax(x_max[0:i][::-1] > threshold) + int(gap/2)
+                i = right - gap
+            else:
+                left = i - int(gap/2)
+                break
+        i -= 1
+    if right is None:
+        return imgops.crop_blackedge2(thr_img, 120)
+    y_max = thr_img.array[:, left:right].max(axis=1)
+    top = np.argmax(y_max > threshold)
+    bottom = thr_img.height - max(0, np.argmax(y_max[::-1] > threshold) - 1)
+    return numimg.crop((left, top, right, bottom))
+
+
+def get_quantity(itemimg, item_id):
+    richlogger = get_logger(__name__)
+    numimg = imgops.scalecrop(itemimg, 0.45, 0.71, 0.9, 0.86).convert('L')
+    # thr = 110 if item_id != '30024' else 120
+    numimg = crop_blackedge(numimg)
+    # numimg = imgops.crop_blackedge2(numimg, 120)
+    if numimg is not None:
+        numimg = imgops.clear_background(numimg, 120)
+        numimg4legacy = numimg
+        from . import itemdb
+        richlogger.logimage(numimg4legacy)
+        qty_minireco, score = itemdb.num_recognizer.recognize2(numimg4legacy, subset='0123456789.万')
+        richlogger.logtext(f'{qty_minireco=}, {score=}')
+        if score > 0.65:
+            try:
+                return _parse_qty_text(qty_minireco)
+            except:
+                pass
+        numimg = imgops.pad(numimg, 4, 0)
+        numimg = imgops.invert_color(numimg)
+        richlogger.logimage(numimg)
+        from .ocr import acquire_engine_global_cached
+        eng = acquire_engine_global_cached('zh-cn')
+        from imgreco.ocr import OcrHint
+        result = eng.recognize(numimg, char_whitelist='0123456789.万', tessedit_pageseg_mode='13',
+                               hints=[OcrHint.SINGLE_LINE])
+        qty_text = result.text
+        richlogger.logtext(f'{qty_text=}')
+        try:
+            return _parse_qty_text(qty_text)
+        except:
+            return None
+
+
+def _parse_qty_text(qty_text):
+    qty_base = float(qty_text.replace(' ', '').replace('万', ''))
+    qty_scale = 10000 if '万' in qty_text else 1
+    return int(qty_base * qty_scale)
     
 
 def tell_item(itemimg, with_quantity=True, learn_unrecognized=False) -> RecognizedItem:
@@ -127,16 +193,13 @@ def tell_item(itemimg, with_quantity=True, learn_unrecognized=False) -> Recogniz
     # print(l/itemimg.width, t/itemimg.height, r/itemimg.width, b/itemimg.height)
     # numimg = itemimg.crop(scaledwh(80, 146, 90, 28)).convert('L')
     low_confidence = False
-    quantity = None
-    if with_quantity:
-        quantity = get_quantity(itemimg)
-
     prob, dnnitem = predict_item_dnn(itemimg.convert('BGR').array)
     item_id = dnnitem.item_id
     name = dnnitem.item_name
     item_type = dnnitem.item_type
     richlogger.logtext(f'dnn matched {dnnitem} with prob {prob}')
-    if prob < 0.8 or item_id == 'other':
+    quantity = None
+    if prob < 0.6 or item_id == 'other':
 # scale = 48/itemimg.height
         img4reco = np.array(itemimg.resize((48, 48), Image.BILINEAR).convert('RGB'))
         img4reco[itemdb.itemmask] = 0
@@ -165,5 +228,12 @@ def tell_item(itemimg, with_quantity=True, learn_unrecognized=False) -> Recogniz
 
     if item_id is None and learn_unrecognized:
         name = itemdb.add_item(itemimg)
+
+    if with_quantity and item_id is not None and item_id != 'other':
+        if item_id == '30024':
+            quantity = get_quantity_old(itemimg)
+        else:
+            quantity = get_quantity(itemimg, item_id)
+        # quantity = get_quantity_old(itemimg)
 
     return RecognizedItem(item_id, name, quantity, low_confidence, item_type)

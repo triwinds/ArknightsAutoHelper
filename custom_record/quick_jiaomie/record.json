@@ -26,18 +26,6 @@
             "threshold": 0.8,
             "type": "tap",
             "wait_seconds_after_touch": 6
-        },
-        {
-            "img": "step2.png",
-            "point": [
-                135,
-                647
-            ],
-            "raise_exception": true,
-            "repeat": 1,
-            "threshold": 0.8,
-            "type": "tap",
-            "wait_seconds_after_touch": 15
         }
     ],
     "screen_height": 720,

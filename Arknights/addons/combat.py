@@ -67,6 +67,7 @@ class OperationOnceStatemachine:
         self.c_id = c_id
         self.addon = addon
         self.vh, self.vw = self.addon.vh, self.addon.vw
+        self.smobj = None
 
     def prepare_operation(self):
         count_times = 0
@@ -314,8 +315,10 @@ class OperationOnceStatemachine:
         smobj.operation_start = 0
         return smobj
 
-    def start(self):
-        smobj = self.create_combat_session()
+    def start(self, smobj=None):
+        if smobj is None:
+            smobj = self.create_combat_session()
+        self.smobj = smobj
         while not smobj.stop:
             oldstate = smobj.state
             smobj.state(smobj)

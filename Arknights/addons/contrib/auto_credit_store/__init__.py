@@ -10,6 +10,7 @@ from automator import AddonBase
 from automator.addon import cli_command
 from imgreco import inventory, common
 from imgreco.stage_ocr import do_tag_ocr
+from imgreco.ocr.ppocr import ocr
 from util.cvimage import Image
 
 logger = logging.getLogger(__name__)
@@ -140,7 +141,11 @@ class AutoCreditStoreAddOn(AddonBase):
         credit_img = screen.crop(rect).array
         credit_img = cv2.cvtColor(credit_img, cv2.COLOR_BGR2GRAY)
         credit_img = cv2.threshold(credit_img, 140, 255, cv2.THRESH_BINARY)[1]
-        return int(do_tag_ocr(credit_img, 1))
+        try:
+            return int(do_tag_ocr(credit_img, 1))
+        except:
+            res, _ = ocr.ocr_single_line(cv2.cvtColor(credit_img, cv2.COLOR_GRAY2BGR))
+            return int(res)
 
     def get_value(self, item_id: str, item_name: str, item_type: str, quantity: int):
         quantity = quantity or 1

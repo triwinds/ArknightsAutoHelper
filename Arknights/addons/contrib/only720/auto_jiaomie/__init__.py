@@ -8,6 +8,7 @@ import cv2
 import app
 from Arknights.addons.contrib.only720.old_base import OldMixin
 from imgreco.ocr.ppocr import ocr_for_single_line
+from imgreco.common import crop_image_only_outside
 
 task_cache_path = app.cache_path.joinpath('jiaomie_cache.json')
 ticket_img_path = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'ticket.png')
@@ -40,7 +41,8 @@ class AutoJiaomieAddOn(OldMixin):
         vh, vw = self.vh, self.vw
         screen = self.screenshot()
         roi = screen.crop((14.028 * vh, 88.472 * vh, 42.083 * vh, 93.889 * vh)).array
-        res = ocr_for_single_line(roi)
+        roi = crop_image_only_outside(cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY), roi)
+        res = ocr_for_single_line(roi).replace('O', '0')
         logging.info(f'current process: {res}')
         return res
 
@@ -49,28 +51,57 @@ class AutoJiaomieAddOn(OldMixin):
         arr = current_process.split('/')
         return len(arr) == 2 and arr[0] == arr[1]
 
+    def tap_start_operation(self):
+        vh, vw = self.vh, self.vw
+        self.tap_rect((100*vw-26.111*vh, 90.694*vh, 100*vw-8.333*vh, 94.861*vh), 2)
+
+    def tap_confirm(self):
+        res = self.match_roi('contrib/auto_jiaomie/confirm_quick_start')
+        if res:
+            self.logger.info('Confirm quick start')
+            self.tap_rect(res.bbox, post_delay=12)
+        # vh, vw = self.vh, self.vw
+        # self.tap_rect((100*vw-26.111*vh, 90.694*vh, 100*vw-8.333*vh, 94.861*vh), 3)
+
     def start_jiaomie(self, times):
         from Arknights.addons.combat import CombatAddon
+        addon = self.addon(CombatAddon)
+        use_penguin_report = addon.use_penguin_report
+        addon.use_penguin_report = False
         while times != 0:
-            oos = self.addon(CombatAddon).create_operation_once_statemachine('quick_jiaomie')
+            oos = addon.create_operation_once_statemachine(None)
             if self.check_is_finish():
-                logging.info('Not necessary to start jiaomie')
+                logging.info('No necessary to start jiaomie')
+                addon.use_penguin_report = use_penguin_report
                 return 0
             try:
-                oos.prepare_operation()
-                max_val, max_loc = self._find_template(ticket_img)
-                if max_val > 0.9:
-                    if self.helper.try_replay_record('quick_jiaomie'):
-                        times -= 1
-                        continue
-                c_id, remain = self.helper.module_battle_slim(None, 1)
+                res = self.match_roi('contrib/auto_jiaomie/quick_start_available')
+                if res:
+                    self.logger.info('Quick start is available, use it.')
+                    self.tap_rect(res.bbox, post_delay=2)
+                smobj = oos.create_combat_session()
+                recoresult, _ = oos.prepare_operation()
+                smobj.prepare_reco = recoresult
+                res = self.match_roi('contrib/auto_jiaomie/quick_start_ready')
+                if res:
+                    self.tap_start_operation()
+                    self.tap_confirm()
+                    self.wait_for_still_image()
+                    oos.on_end_operation(smobj)
+                    self.delay(5)
+                    times -= 1
+                    continue
+                c_id, remain = addon.combat_on_current_stage(1)
                 if remain == 0:
                     times -= 1
                 else:
+                    addon.use_penguin_report = use_penguin_report
                     return times
             except StopIteration:
                 logging.info('No more battle')
+                addon.use_penguin_report = use_penguin_report
                 return times
+        addon.use_penguin_report = use_penguin_report
         return 0
 
     def run(self):
@@ -92,3 +123,4 @@ class AutoJiaomieAddOn(OldMixin):
 if __name__ == '__main__':
     from Arknights.configure_launcher import helper
     helper.addon(AutoJiaomieAddOn).run()
+    # helper.addon(AutoJiaomieAddOn).start_jiaomie(1)
