@@ -24,7 +24,7 @@ from .adb.client import ADBDevice, ADBServer
 from .adb.info import ADBControllerDeviceInfo
 from .adb.agent import ControlAgentClient
 
-from .types import EventAction, EventFlag, InputProtocol, ScreenshotProtocol, ControllerCapabilities
+from .types import Controller, EventAction, EventFlag, InputProtocol, ScreenshotProtocol, ControllerCapabilities
 
 logger = logging.getLogger(__name__)
 
@@ -310,18 +310,23 @@ class AahAgentClientAdapter(_TouchEventsInputImpl, ScreenshotProtocol):
         return self.client.send_key(keycode, metastate)
     
     def send_text(self, text: str) -> None:
-        return super().send_text(text)
+        return self.client.send_text(text)
     
     def screenshot(self) -> cvimage.Image:
         wrapped_img = self.client.screenshot(compress=self.compress, srgb=True)
         return wrapped_img.image
+    
+    def close(self) -> None:
+        if self.client is not None:
+            self.client.close()
+            self.client = None
 
 def _check_invalid_screenshot(image: cvimage.Image):
     alpha_channel: np.ndarray = image.array[..., 3]
     if np.all(alpha_channel == 0):
         raise io.UnsupportedOperation('screenshot with all pixels alpha = 0')
 
-class ADBController:
+class ADBController(Controller):
     def __init__(self, device: ADBDevice, display_id: Optional[int] = None, preload_device_info: dict = {}, override_identifier: Optional[str] = None):
         """
         Creates a new ADBController instance.
@@ -423,7 +428,11 @@ class ADBController:
             else:
                 self._last_screenshot_expire = t0 + (1 / rate_limit)
         return self._last_screenshot
-        
+
+    def close(self):
+        self.input.close()
+        self._screenshot_adapter.close()
+
     def touch_swipe2(self, origin, movement, duration=None):
         """DEPRECATED: use input.touch_swipe() instead"""
         # sleep(1)
