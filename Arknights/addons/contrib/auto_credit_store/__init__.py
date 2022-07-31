@@ -131,7 +131,7 @@ class AutoCreditStoreAddOn(AddonBase):
         picked_items = self.calc_items(screen)
         for picked_item in picked_items:
             self.log_text(f'buy item: {picked_item}')
-            self.tap_point(picked_item['itemPos'])
+            self.tap_point(picked_item['itemPos'], post_delay=1)
             from Arknights.addons.record import RecordAddon
             self.addon(RecordAddon).replay_custom_record('buy_credit_item', quiet=True)
 

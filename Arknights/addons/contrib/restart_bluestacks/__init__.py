@@ -15,15 +15,20 @@ from util.richlog import get_logger
 
 file_root = os.path.realpath(os.path.dirname(__file__)) + '/'
 close_img = Image.open(file_root + 'close.png').convert('L')
+close1_img = Image.open(file_root + 'close1.png').convert('L')
 start_img = Image.open(file_root + 'start.png').convert('L')
 login_img = Image.open(file_root + 'login.png').convert('L')
 logger = get_logger('restart_bluestacks')
 
 
 def get_bluestacks_window():
+    return get_and_focus_window('BlueStacks App Player')
+
+
+def get_and_focus_window(window_name):
     for i in Desktop().windows():
         wind: DialogWrapper = i
-        if 'BlueStacks App Player' == wind.window_text():
+        if window_name == wind.window_text():
             wind.set_focus()
             return wind
     return None
@@ -35,7 +40,7 @@ def close_bluestacks(bluestacks_window):
         return False
     try:
         bluestacks_window.close_alt_f4()
-        time.sleep(0.5)
+        time.sleep(1)
     except:
         pass
     return click_window_img(bluestacks_window, close_img)
@@ -113,4 +118,5 @@ def restart_all():
 
 
 if __name__ == '__main__':
+    time.sleep(5)
     restart_all()

@@ -306,4 +306,4 @@ class ActivityAddOn(AddonBase):
 
 if __name__ == '__main__':
     from Arknights.configure_launcher import helper
-    helper.addon(ActivityAddOn).nav_and_combat('dv-8', 1)
+    helper.addon(ActivityAddOn).nav_and_combat('dh-9', 1)
