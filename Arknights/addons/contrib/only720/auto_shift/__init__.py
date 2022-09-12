@@ -330,6 +330,7 @@ class AutoShiftAddOn(AddonBase):
         logger.info('open operator view...')
         vw, vh = self.vw, self.vh
         self.tap_rect((100 * vw - 57.500 * vh, 12.361 * vh, 100 * vw - 14.583 * vh, 30.000 * vh))
+        self.helper.wait_for_roi('riic/confirm_select')
 
     def get_op_sanity(self, cv_screen):
         vw, vh = self.vw, self.vh

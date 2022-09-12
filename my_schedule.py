@@ -57,22 +57,21 @@ def clear_sanity_by_red_ticket():
 
 def clear_sanity_by_item(only_activity=False):
     logger.info('clear_sanity_by_item')
-    try:
-        stage = app.get('addons/activity/stage')
-        repeat_times = app.get('addons/activity/repeat_times', 1000)
-        helper.addon(StageNavigator).navigate_and_combat(stage, repeat_times)
-        return
-    except Exception as e:
-        print(e)
-        if only_activity:
-            helper.addon(AutoChips).run()
-            return
+    # try:
+    #     stage = app.get('addons/activity/stage')
+    #     repeat_times = app.get('addons/activity/repeat_times', 1000)
+    #     helper.addon(StageNavigator).navigate_and_combat(stage, repeat_times)
+    #     return
+    # except Exception as e:
+    #     print(e)
+    #     if only_activity:
+    #         helper.addon(AutoChips).run()
+    #         return
 
-    # helper.addon(AutoChips).run()
-    # from Arknights.addons.contrib.grass_on_aog import GrassAddOn
-    # helper.addon(GrassAddOn).run()
-
-    helper.addon(StageNavigator).navigate_and_combat('1-7', 1000)
+    from Arknights.addons.contrib.grass_on_aog import GrassAddOn
+    if not helper.addon(GrassAddOn).run():
+        helper.addon(AutoChips).run()
+        helper.addon(StageNavigator).navigate_and_combat('1-7', 1000)
 
 
 def send_by_tg_bot(chat_id, title, content):
@@ -84,6 +83,7 @@ def send_by_tg_bot(chat_id, title, content):
 
 def do_works():
     global helper
+    update_cache()
     # 重启 adb server, 以免产生奇怪的 bug
     try:
         os.system('adb kill-server')
@@ -108,11 +108,17 @@ def recruit():
     addon.auto_recruit(4)
 
 
+def update_cache():
+    update_net()
+    from Arknights.addons.contrib.common_cache import check_game_data_version
+    check_game_data_version()
+
+
 def main():
     do_works()
     scheduler = BlockingScheduler(timezone='Asia/Shanghai')
     # scheduler.add_job(recruit, 'cron', day_of_week='0,1,2', hour='19', minute=0)
-    # scheduler.add_job(restart_all, 'cron', day='*', hour=4, minute=5)
+    scheduler.add_job(restart_all, 'cron', day='*', hour=4, minute=5)
     scheduler.add_job(do_works, 'cron', hour='*/4', minute=15)
     scheduler.start()
 

@@ -9,6 +9,7 @@ from Arknights.addons.contrib.auto_credit_store import AutoCreditStoreAddOn
 from Arknights.addons.contrib.only720.auto_clues import AutoClueAddOn
 from Arknights.addons.contrib.only720.auto_recruit import AutoRecruitAddOn
 from Arknights.addons.contrib.only720.auto_shift import AutoShiftAddOn
+from Arknights.addons.contrib.common_cache import check_game_data_version
 from Arknights.addons.quest import QuestAddon
 from Arknights.addons.record import RecordAddon
 from Arknights.configure_launcher import get_helper
@@ -40,7 +41,6 @@ def save_cache(task_cache):
 
 def main():
     print('do common task.')
-    update_net()
     helper = get_helper()
     task_cache = load_cache()
 
@@ -60,7 +60,15 @@ def main():
     helper.addon(QuestAddon).clear_task()
 
     logger.info('===基建换班')
-    helper.addon(AutoShiftAddOn).run()
+    retry_count = 0
+    while True:
+        try:
+            helper.addon(AutoShiftAddOn).run()
+            break
+        except Exception as e:
+            retry_count += 1
+            if retry_count > 3:
+                raise e
 
     auto_clue_time = task_cache.get('auto_clue_time', 0)
     if auto_clue_time + 3 * 3600 < time.time():

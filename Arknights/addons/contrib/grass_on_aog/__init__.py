@@ -104,6 +104,11 @@ def get_stage(aog_items, my_items, prefer_activity=True):
             if filtered_t3_items:
                 return get_stage_with_action('auto_t3', my_items, filtered_t3_items)
             else:
+                logger.info('Refresh aog data.')
+                t3_items = load_aog_data(True)['tier']['t3']
+                filtered_t3_items = filter_items_with_activity(t3_items, available_activity_stages)
+                if filtered_t3_items:
+                    return get_stage_with_action('auto_t3', my_items, filtered_t3_items)
                 logger.info('没有在 aog 中找到活动关卡相关的材料, 这可能是因为 aog 数据还没有更新, 或者这次活动关卡的效率还不如普通关卡.')
                 logger.info('可以试试在一段时间后删除 cache/aog_cache.json 以强制刷新 aog 数据缓存.')
                 no_aog_data_action = app.config.grass_on_aog.no_aog_data_action
@@ -148,7 +153,7 @@ class GrassAddOn(AddonBase):
         my_items_with_count = sorted(my_items_with_count, key=lambda x: x['count'])
         stage = get_stage(aog_cache, my_items_with_count, prefer_activity=app.config.grass_on_aog.prefer_activity_stage)
         if stage:
-            self.addon(StageNavigator).navigate_and_combat(stage, 1000)
+            return self.addon(StageNavigator).navigate_and_combat(stage, 1000)
 
 
 __all__ = ['GrassAddOn']
