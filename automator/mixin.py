@@ -149,5 +149,13 @@ class AddonMixin(imgreco.common.RoiMatchingMixin):
             self.delay(0.5, False, False)
         return False, results
 
-    def screenshot(self, mode='BGR') -> Image:
-        return self.helper.control.screenshot().convert(mode)
+    def screenshot(self, mode='BGR', cached=None) -> Image:
+        raw_screen = self.helper.control.screenshot(cached=cached).convert(mode)
+        vw, vh = self.helper.vw, self.helper.vh
+        roi = raw_screen.crop((56.641*vw, 90.556*vh, 75.078*vw, 94.444*vh))
+        from imgreco.ocr.ppocr import ocr_for_single_line
+        while '提交反馈' in ocr_for_single_line(roi.array):
+            self.delay(0.5, False)
+            raw_screen = self.helper.control.screenshot(cached=False).convert(mode)
+            roi = raw_screen.crop((56.641 * vw, 90.556 * vh, 75.078 * vw, 94.444 * vh))
+        return raw_screen
