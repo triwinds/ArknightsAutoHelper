@@ -67,7 +67,6 @@ def clear_sanity_by_item(only_activity=False):
     #     if only_activity:
     #         helper.addon(AutoChips).run()
     #         return
-
     from Arknights.addons.contrib.grass_on_aog import GrassAddOn
     if not helper.addon(GrassAddOn).run():
         helper.addon(AutoChips).run()

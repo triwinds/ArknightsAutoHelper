@@ -63,7 +63,8 @@ def main():
     retry_count = 0
     while True:
         try:
-            helper.addon(AutoShiftAddOn).run()
+            shift_addon = helper.addon(AutoShiftAddOn)
+            shift_addon.run()
             break
         except Exception as e:
             retry_count += 1

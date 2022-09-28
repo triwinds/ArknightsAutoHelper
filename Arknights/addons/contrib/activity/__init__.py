@@ -127,10 +127,17 @@ def get_detect_result_from_cache(zone_id):
 
 def save_detect_result(zone_id, pos):
     detect_cache = load_detect_cache()
-    detect_cache[zone_id] = pos
+    if pos:
+        detect_cache[zone_id] = pos
+    else:
+        detect_cache.pop(zone_id)
     with open(detect_cache_file, 'w') as f:
         json.dump(detect_cache, f)
         load_detect_cache.cache_clear()
+
+
+def remove_detect_cache(zone_id):
+    save_detect_result(zone_id, None)
 
 
 class ActivityAddOn(AddonBase):
@@ -290,7 +297,7 @@ class ActivityAddOn(AddonBase):
             self.addon(StageNavigator).find_and_tap_stage_by_ocr(None, target_stage_code, stage_linear)
             save_detect_result(zone_id, pos)
         except Exception as e:
-            save_detect_result(zone_id, [-1, -1])
+            remove_detect_cache(zone_id)
             raise e
 
 
