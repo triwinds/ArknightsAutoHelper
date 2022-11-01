@@ -81,7 +81,7 @@ class OperationOnceStatemachine:
                 self.logger.debug('当前画面关卡：%s', recoresult['operation'])
                 if self.c_id is not None:
                     # 如果传入了关卡 ID，检查识别结果
-                    if recoresult['operation'] != self.c_id:
+                    if recoresult['operation'] != self.c_id and self.c_id != 'LATEST':
                         self.logger.warning(f"id mismatch, ocr: {recoresult['operation']}, target: {self.c_id}")
                 break
             else:
