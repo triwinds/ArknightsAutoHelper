@@ -57,16 +57,8 @@ def clear_sanity_by_red_ticket():
 
 def clear_sanity_by_item(only_activity=False):
     logger.info('clear_sanity_by_item')
-    # try:
-    #     stage = app.get('addons/activity/stage')
-    #     repeat_times = app.get('addons/activity/repeat_times', 1000)
-    #     helper.addon(StageNavigator).navigate_and_combat(stage, repeat_times)
-    #     return
-    # except Exception as e:
-    #     print(e)
-    #     if only_activity:
-    #         helper.addon(AutoChips).run()
-    #         return
+    # helper.addon(StageNavigator).navigate_and_combat('latest', 1000)
+
     from Arknights.addons.contrib.grass_on_aog import GrassAddOn
     if not helper.addon(GrassAddOn).run():
         helper.addon(AutoChips).run()
@@ -114,6 +106,8 @@ def update_cache():
 
 
 def main():
+    os.environ['HTTP_PROXY'] = 'http://localhost:7890'
+    os.environ['HTTPS_PROXY'] = 'http://localhost:7890'
     do_works()
     scheduler = BlockingScheduler(timezone='Asia/Shanghai')
     # scheduler.add_job(recruit, 'cron', day_of_week='0,1,2', hour='19', minute=0)
