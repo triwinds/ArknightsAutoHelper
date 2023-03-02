@@ -11,7 +11,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 app.init()
-game_data_url = app.get('game_data_url', 'https://gh.cirno.xyz/raw.githubusercontent.com'
+game_data_url = app.get('game_data_url', 'https://raw.githubusercontent.com'
                                          '/Kengxxiao/ArknightsGameData/master/zh_CN/gamedata/excel')
 
 

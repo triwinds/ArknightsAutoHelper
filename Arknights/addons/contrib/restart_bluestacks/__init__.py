@@ -62,10 +62,14 @@ def start_bluestacks():
     time.sleep(60)
 
 
-def close_bluestacks():
+def check_bluestacks_is_alive():
     output = subprocess.run(['tasklist'], capture_output=True)
     # print(output.stdout.decode('gbk'))
-    if 'HD-Player' not in output.stdout.decode('gbk'):
+    return 'HD-Player' in output.stdout.decode('gbk')
+
+
+def close_bluestacks():
+    if not check_bluestacks_is_alive():
         logger.info('bluestacks is not running.')
         return
     logger.info('stopping bluestacks...')

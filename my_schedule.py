@@ -16,7 +16,7 @@ from Arknights.addons.stage_navigator import StageNavigator
 from Arknights.configure_launcher import reconnect_helper, get_helper
 from automator import BaseAutomator
 from imgreco.itemdb import update_net
-from Arknights.addons.contrib.restart_bluestacks import restart_all
+from Arknights.addons.contrib.restart_bluestacks import restart_all, check_bluestacks_is_alive, close_bluestacks
 
 logger = logging.getLogger(__file__)
 helper: BaseAutomator = None
@@ -77,6 +77,8 @@ def do_works():
     update_cache()
     # 重启 adb server, 以免产生奇怪的 bug
     try:
+        if not check_bluestacks_is_alive():
+            restart_all()
         os.system('adb kill-server')
         reconnect_helper()
         helper = get_helper()
@@ -86,6 +88,7 @@ def do_works():
         common_task.main()
         logger.info(f'finish at: {datetime.now()}')
         time.sleep(60)
+        close_bluestacks()
 
     except Exception as e:
         send_by_tg_bot(app.get('notify/chat_id'), 'arh-fail', traceback.format_exc())
